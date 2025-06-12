@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="120" cy="120" r="110" fill="#157440" fill-opacity="0.12"/>
+  <circle cx="120" cy="120" r="100" fill="#157440"/>
+  <text x="50%" y="54%" text-anchor="middle" fill="#fff" font-family="Montserrat, Poppins, Arial, sans-serif" font-size="92" font-weight="bold" letter-spacing="6" dominant-baseline="middle" >GSI</text>
+</svg>
