@@ -28,7 +28,7 @@ export function DashboardHeader({ onMobileMenuToggle }: DashboardHeaderProps) {
   const router = useRouter()
 
   const handleMenuClick = () => {
-    console.log("Menu clicked") // Debug
+    //console.log("Menu clicked") // Debug
     onMobileMenuToggle()
   }
 

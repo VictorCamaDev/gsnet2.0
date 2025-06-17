@@ -50,7 +50,7 @@ export function LoginForm({ company }: LoginFormProps) {
       const loginResponse = await instance.loginPopup({
         scopes: ["openid", "profile", "email"],
       });
-      console.log("MSAL loginResponse:", loginResponse);
+      //console.log("MSAL loginResponse:", loginResponse);
 
       const msToken = loginResponse.idToken;
       const email = loginResponse.account?.username || "";

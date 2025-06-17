@@ -25,7 +25,7 @@ export function DashboardSidebar({ isMobileOpen, onMobileClose }: DashboardSideb
 
   // Debug
   useEffect(() => {
-    console.log("Sidebar isMobileOpen:", isMobileOpen)
+    //console.log("Sidebar isMobileOpen:", isMobileOpen)
   }, [isMobileOpen])
 
   // Cerrar sidebar móvil cuando cambia la ruta
@@ -58,7 +58,7 @@ export function DashboardSidebar({ isMobileOpen, onMobileClose }: DashboardSideb
   }
 
   const handleClose = () => {
-    console.log("Closing sidebar") // Debug
+    //console.log("Closing sidebar") // Debug
     onMobileClose()
   }
 

@@ -40,7 +40,7 @@ export class ApiService {
     let triedRefresh = false;
     const doRequest = async (): Promise<ApiResponse<T>> => {
       const url = `${this.config.baseUrl}${endpoint}`;
-      console.log("API REQUEST URL:", url);
+      //console.log("API REQUEST URL:", url);
 
       const config: RequestInit = {
         ...options,
@@ -62,7 +62,7 @@ export class ApiService {
         clearTimeout(timeoutId);
 
         if (response.status === 401 && endpoint !== '/auth/logout' && !triedRefresh) {
-          console.log("¡Entrando a lógica de refresh token!");
+          //console.log("¡Entrando a lógica de refresh token!");
           triedRefresh = true;
           if (typeof window !== 'undefined') {
             const selectedCompany = sessionStorage.getItem('selected_company');
@@ -127,11 +127,17 @@ export class ApiService {
         }
 
         const data = await response.json();
-        return data;
+        if (data && typeof data === "object" && "data" in data) {
+          return { success: true, data: data.data };
+        }
+        return { success: true, data };
+
       } catch (error) {
         if (options && typeof options === 'object' && 'method' in options && options.method === 'POST' && endpoint === '/auth/logout' && error instanceof Error && error.message.includes('401')) {
         } else {
-          console.error("API Error:", error)
+          if (!(error instanceof Error && (error.message.includes('404') || error.message.includes('Failed to fetch')))) {
+            console.error("API Error:", error);
+          }
         }
         return {
           success: false,

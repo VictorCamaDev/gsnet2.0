@@ -1,44 +1,222 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2 } from "lucide-react";
+import type React from "react"
 
-interface IngredienteActivo {
-  nombre: string;
-  concentracion: string;
-  porcentaje: string;
+import { useState, useRef, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import {
+  Plus,
+  Trash2,
+  ClipboardList,
+  Leaf,
+  FileText,
+  Target,
+  Factory,
+  Building,
+  Bookmark,
+  FileCheck,
+  Eye,
+  X,
+  Upload,
+  Search,
+  ArrowLeft,
+  ArrowRight,
+  Save,
+  Loader2,
+} from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+import { Badge } from "@/components/ui/badge"
+import type { IntProductoRegistradoEntity } from "@/types/registro"
+import { cn } from "@/lib/utils"
+import { ApiService } from "@/services/api.service"
+import Swal from "sweetalert2"
+
+// Define interfaces for master data
+interface MasterDataItem {
+  id: number
+  nombre: string
+  [key: string]: any
 }
 
-interface Empresa {
-  nombre: string;
-  pais: string;
-  direccion: string;
+interface IngredienteActivo {
+  id?: number
+  nombre: string
+  concentracion: string
+  porcentaje: string
 }
 
 interface Plaga {
-  nombreComun: string;
-  nombreCientifico: string;
-  dosis: string;
-  lmr: string;
-  pcDias: number;
-  prHoras: number;
+  id?: number
+  nombreComun: string
+  nombreCientifico: string
+  dosis: string
+  lmr: string
+  pcDias: number
+  prHoras: number
 }
 
-interface Cultivo {
-  cultivoId: number;
-  cultivoNombre: string;
-  numeroResolucion: string;
-  plagas: Plaga[];
+interface Uso {
+  id?: number
+  cultivoId?: number
+  cultivoNombre: string
+  numeroResolucion: string
+  plagas: Plaga[]
+}
+
+interface Empresa {
+  id?: number
+  nombre: string
+  pais: string
+  direccion: string
+}
+
+interface DocumentoAdjunto {
+  id: string
+  nombre: string
+  tipo: string
+  tamano: string
+  archivo: File
+}
+
+interface FormulacionItem extends MasterDataItem {
+  codigo: string
+  descripcion: string
+}
+
+interface BandaToxItem extends MasterDataItem {
+  color: string
+  descripcion: string
+}
+
+function ComboboxWithAddNew({
+  data,
+  value,
+  onChange,
+  placeholder,
+  label,
+  onAddNew,
+}: {
+  data: MasterDataItem[]
+  value: number | string | undefined
+  onChange: (value: number | string) => void
+  placeholder: string
+  label: string
+  onAddNew: (value: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [inputValue, setInputValue] = useState("")
+  const [showAddNew, setShowAddNew] = useState(false)
+
+  const handleSelect = (currentValue: string) => {
+    onChange(currentValue)
+    setOpen(false)
+  }
+
+  const handleAddNew = () => {
+    if (inputValue.trim()) {
+      onAddNew(inputValue.trim())
+      setInputValue("")
+      setShowAddNew(false)
+    }
+  }
+
+  useEffect(() => {
+    setShowAddNew(
+      inputValue.trim() !== "" && !data.some((item) => item.nombre.toLowerCase() === inputValue.toLowerCase()),
+    )
+  }, [inputValue, data])
+
+  const selectedItem = data.find((item) => item.id === value || item.id === Number(value))
+
+  return (
+    <div className="flex flex-col space-y-1">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="justify-between w-full text-left font-normal"
+          >
+            {selectedItem ? selectedItem.nombre : placeholder}
+            <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-full p-0">
+          <Command>
+            <CommandInput
+              placeholder={`Buscar ${label.toLowerCase()}...`}
+              value={inputValue}
+              onValueChange={setInputValue}
+            />
+            <CommandList>
+              <CommandEmpty>No se encontraron resultados.</CommandEmpty>
+              <CommandGroup className="max-h-60 overflow-auto">
+                {data.map((item) => (
+                  <CommandItem
+                    key={item.id}
+                    value={item.nombre}
+                    onSelect={() => handleSelect(item.id.toString())}
+                    className={cn(
+                      "cursor-pointer",
+                      value === item.id && "bg-green-100 text-green-700"
+                    )}
+                  >
+                    {item.nombre}
+                  </CommandItem>
+                ))}
+                {showAddNew && (
+                  <CommandItem
+                    onSelect={handleAddNew}
+                    className="cursor-pointer text-green-600 font-medium flex items-center"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Agregar "{inputValue}"
+                  </CommandItem>
+                )}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+    </div>
+  )
 }
 
 export default function RegistroInternacional() {
-  const [formData, setFormData] = useState({
+  const apiService = new ApiService()
+  const [submitting, setSubmitting] = useState(false)
+
+  // State for master data
+  const [ingredientesActivos, setIngredientesActivos] = useState<MasterDataItem[]>([])
+  const [tiposProducto, setTiposProducto] = useState<MasterDataItem[]>([])
+  const [clasesUso, setClasesUso] = useState<MasterDataItem[]>([])
+  const [bandasTox, setBandasTox] = useState<BandaToxItem[]>([])
+  const [formulaciones, setFormulaciones] = useState<FormulacionItem[]>([])
+  const [cultivos, setCultivos] = useState<MasterDataItem[]>([])
+  const [plagas, setPlagas] = useState<MasterDataItem[]>([])
+  const [tiposRegistroMarca, setTiposRegistroMarca] = useState<MasterDataItem[]>([])
+  const [clasesRegistroMarca, setClasesRegistroMarca] = useState<MasterDataItem[]>([])
+  const [empresas, setEmpresas] = useState<MasterDataItem[]>([])
+  const [listaAvances, setListaAvances] = useState<MasterDataItem[]>([])
+
+  // State for dialog
+  const [openPlagasDialog, setOpenPlagasDialog] = useState(false)
+  const [selectedUsoIndex, setSelectedUsoIndex] = useState<number | null>(null)
+  const [selectedPlagas, setSelectedPlagas] = useState<Plaga[]>([])
+  const [openAddNewDialog, setOpenAddNewDialog] = useState(false)
+  const [newItemType, setNewItemType] = useState<string>("")
+  const [newItemName, setNewItemName] = useState<string>("")
+  const [newItemData, setNewItemData] = useState<any>({})
+
+  // State for form data
+  const [formData, setFormData] = useState<Partial<IntProductoRegistradoEntity>>({
     tipoProducto: "",
     producto: "",
     formulacion: "",
@@ -50,337 +228,2102 @@ export default function RegistroInternacional() {
     descripcion: "",
     dictamenTecnico: "",
     estabilidadProducto: "",
+    ingredienteActivo: [],
     avance: {
       numeroExpediente: "",
       presentacionExpediente: "",
       terminoRegistro: "",
       comentario: "",
       statusAvance: "",
-      valor: ""
+      valor: "",
     },
     certificado: {
       numeroCertificado: "",
       fechaRegistro: "",
       fechaActualizacion: "",
       vigenciaRegistro: "",
-      formulador: [] as Empresa[],
-      fabricante: [] as Empresa[]
+      formulador: [],
+      fabricante: [],
     },
-    fabricantes: [] as Empresa[],
-    formuladores: [] as Empresa[],
+    fabricantes: [],
+    formuladores: [],
     marca: {
-      registroMarcaId: 0,
       marcaRegistrada: "",
       numeroRegistro: "",
       claseRegistroMarca: "",
       tipoRegistroMarca: "",
       fechaRegistro: "",
       vigencia: "",
-      logo: ""
+      logo: "",
     },
-    usos: [] as Cultivo[]
-  });
+    usos: [],
+  })
 
-  const [ingredientes, setIngredientes] = useState<IngredienteActivo[]>([{ nombre: "", concentracion: "", porcentaje: "" }]);
-  const [cultivos, setCultivos] = useState<Cultivo[]>([{ cultivoId: 1, cultivoNombre: "", numeroResolucion: "", plagas: [] }]);
+  // State for managing arrays
+  const [ingredientes, setIngredientes] = useState<IngredienteActivo[]>([])
+  const [nuevoIngrediente, setNuevoIngrediente] = useState<IngredienteActivo>({
+    nombre: "",
+    concentracion: "",
+    porcentaje: "",
+  })
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
+  const [fabricantes, setFabricantes] = useState<Empresa[]>([])
+  const [formuladores, setFormuladores] = useState<Empresa[]>([])
+
+  const [usos, setUsos] = useState<Uso[]>([])
+  const [nuevoUso, setNuevoUso] = useState<{
+    cultivoId?: number
+    cultivoNombre: string
+    numeroResolucion: string
+  }>({
+    cultivoNombre: "",
+    numeroResolucion: "",
+  })
+
+  const [nuevaPlaga, setNuevaPlaga] = useState<Plaga>({
+    nombreComun: "",
+    nombreCientifico: "",
+    dosis: "",
+    lmr: "",
+    pcDias: 0,
+    prHoras: 0,
+  })
+
+  const [usoSeleccionado, setUsoSeleccionado] = useState<number | null>(null)
+  const [plagasUso, setPlagasUso] = useState<Record<number, Plaga[]>>({})
+
+  // State for file uploads
+  const [logoPreview, setLogoPreview] = useState<string | null>(null)
+  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [documentos, setDocumentos] = useState<DocumentoAdjunto[]>([])
+  const [previewDocument, setPreviewDocument] = useState<string | null>(null)
+
+  // Refs
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const multipleFileInputRef = useRef<HTMLInputElement>(null)
+
+  // Current step state
+  const [currentStep, setCurrentStep] = useState(1)
+
+  // Steps configuration
+  const steps = [
+    { id: 1, title: "Información General del Producto", icon: ClipboardList },
+    { id: 2, title: "Ingredientes Activos y Composición", icon: Leaf },
+    { id: 3, title: "Estado y Avance del Registro", icon: FileText },
+    { id: 4, title: "Aplicaciones y Usos Autorizados", icon: Target },
+    { id: 5, title: "Datos del Fabricante", icon: Factory },
+    { id: 6, title: "Datos del Formulador", icon: Building },
+    { id: 7, title: "Información de Marca y Registro Comercial", icon: Bookmark },
+    { id: 8, title: "Documentación y Archivos Adjuntos", icon: FileCheck },
+  ]
+
+  // Fetch master data on component mount
+  useEffect(() => {
+    const fetchMasterData = async () => {
+      try {
+        let headers: any = {};
+        const selectedCompany = sessionStorage.getItem("selected_company");
+        if (selectedCompany) {
+          try {
+            const companyObj = JSON.parse(selectedCompany);
+            if (companyObj?.id) {
+              headers["IdEmpresa"] = companyObj.id;
+            }
+          } catch (e) {
+            console.warn("Error parseando selected_company:", e);
+          }
+        }
+
+        const [
+          ingredientesRes,
+          tiposProductoRes,
+          clasesUsoRes,
+          bandasToxRes,
+          formulacionesRes,
+          cultivosRes,
+          plagasRes,
+          tiposRegistroMarcaRes,
+          clasesRegistroMarcaRes,
+          empresasRes,
+          listaAvancesRes,
+        ] = await Promise.all([
+          apiService.get<{ data: MasterDataItem[] }>("/Formulario/ingredientes-activos", headers),
+          apiService.get<{ data: MasterDataItem[] }>("/Formulario/tipos-producto", headers),
+          apiService.get<{ data: MasterDataItem[] }>("/Formulario/clases-uso", headers),
+          apiService.get<{ data: BandaToxItem[] }>("/Formulario/bandas-toxicologicas", headers),
+          apiService.get<{ data: FormulacionItem[] }>("/Formulario/formulaciones", headers),
+          apiService.get<{ data: MasterDataItem[] }>("/Formulario/cultivos", headers),
+          apiService.get<{ data: MasterDataItem[] }>("/Formulario/plagas", headers),
+          apiService.get<{ data: MasterDataItem[] }>("/Formulario/tipos-registro-marca", headers),
+          apiService.get<{ data: MasterDataItem[] }>("/Formulario/clases-registro-marca", headers),
+          apiService.get<{ data: MasterDataItem[] }>("/Formulario/empresas", headers),
+          apiService.get<{ data: MasterDataItem[] }>("/Formulario/lista-avances", headers),
+        ])
+
+        //console.log("tiposProductoRes", tiposProductoRes);
+        // Set master data in state
+        // Set master data in state de forma robusta para cualquier estructura de respuesta
+        // Ingredientes activos
+        if (Array.isArray(ingredientesRes)) {
+          setIngredientesActivos(ingredientesRes)
+        } else if (ingredientesRes?.data && Array.isArray(ingredientesRes.data)) {
+          setIngredientesActivos(ingredientesRes.data)
+        } else if (ingredientesRes?.data?.data && Array.isArray(ingredientesRes.data.data)) {
+          setIngredientesActivos(ingredientesRes.data.data)
+        } else {
+          setIngredientesActivos([])
+        }
+        // Tipos de producto
+        if (Array.isArray(tiposProductoRes)) {
+          setTiposProducto(tiposProductoRes)
+        } else if (tiposProductoRes?.data && Array.isArray(tiposProductoRes.data)) {
+          setTiposProducto(tiposProductoRes.data)
+        } else if (tiposProductoRes?.data?.data && Array.isArray(tiposProductoRes.data.data)) {
+          setTiposProducto(tiposProductoRes.data.data)
+        } else {
+          setTiposProducto([])
+        }
+        // Clases de uso
+        if (Array.isArray(clasesUsoRes)) {
+          setClasesUso(clasesUsoRes)
+        } else if (clasesUsoRes?.data && Array.isArray(clasesUsoRes.data)) {
+          setClasesUso(clasesUsoRes.data)
+        } else if (clasesUsoRes?.data?.data && Array.isArray(clasesUsoRes.data.data)) {
+          setClasesUso(clasesUsoRes.data.data)
+        } else {
+          setClasesUso([])
+        }
+        // Bandas toxicológicas
+        if (Array.isArray(bandasToxRes)) {
+          setBandasTox(bandasToxRes)
+        } else if (bandasToxRes?.data && Array.isArray(bandasToxRes.data)) {
+          setBandasTox(bandasToxRes.data)
+        } else if (bandasToxRes?.data?.data && Array.isArray(bandasToxRes.data.data)) {
+          setBandasTox(bandasToxRes.data.data)
+        } else {
+          setBandasTox([])
+        }
+        // Formulaciones
+        if (Array.isArray(formulacionesRes)) {
+          setFormulaciones(formulacionesRes)
+        } else if (formulacionesRes?.data && Array.isArray(formulacionesRes.data)) {
+          setFormulaciones(formulacionesRes.data)
+        } else if (formulacionesRes?.data?.data && Array.isArray(formulacionesRes.data.data)) {
+          setFormulaciones(formulacionesRes.data.data)
+        } else {
+          setFormulaciones([])
+        }
+        // Cultivos
+        if (Array.isArray(cultivosRes)) {
+          setCultivos(cultivosRes)
+        } else if (cultivosRes?.data && Array.isArray(cultivosRes.data)) {
+          setCultivos(cultivosRes.data)
+        } else if (cultivosRes?.data?.data && Array.isArray(cultivosRes.data.data)) {
+          setCultivos(cultivosRes.data.data)
+        } else {
+          setCultivos([])
+        }
+        // Plagas
+        if (Array.isArray(plagasRes)) {
+          setPlagas(plagasRes)
+        } else if (plagasRes?.data && Array.isArray(plagasRes.data)) {
+          setPlagas(plagasRes.data)
+        } else if (plagasRes?.data?.data && Array.isArray(plagasRes.data.data)) {
+          setPlagas(plagasRes.data.data)
+        } else {
+          setPlagas([])
+        }
+        // Tipos registro marca
+        if (Array.isArray(tiposRegistroMarcaRes)) {
+          setTiposRegistroMarca(tiposRegistroMarcaRes)
+        } else if (tiposRegistroMarcaRes?.data && Array.isArray(tiposRegistroMarcaRes.data)) {
+          setTiposRegistroMarca(tiposRegistroMarcaRes.data)
+        } else if (tiposRegistroMarcaRes?.data?.data && Array.isArray(tiposRegistroMarcaRes.data.data)) {
+          setTiposRegistroMarca(tiposRegistroMarcaRes.data.data)
+        } else {
+          setTiposRegistroMarca([])
+        }
+        // Clases registro marca
+        if (Array.isArray(clasesRegistroMarcaRes)) {
+          setClasesRegistroMarca(clasesRegistroMarcaRes)
+        } else if (clasesRegistroMarcaRes?.data && Array.isArray(clasesRegistroMarcaRes.data)) {
+          setClasesRegistroMarca(clasesRegistroMarcaRes.data)
+        } else if (clasesRegistroMarcaRes?.data?.data && Array.isArray(clasesRegistroMarcaRes.data.data)) {
+          setClasesRegistroMarca(clasesRegistroMarcaRes.data.data)
+        } else {
+          setClasesRegistroMarca([])
+        }
+        // Empresas
+        if (Array.isArray(empresasRes)) {
+          setEmpresas(empresasRes.map(e => ({ ...e, id: e.empresaId ?? e.id })))
+        } else if (empresasRes?.data && Array.isArray(empresasRes.data)) {
+          setEmpresas(empresasRes.data.map(e => ({ ...e, id: e.empresaId ?? e.id })))
+        } else if (empresasRes?.data?.data && Array.isArray(empresasRes.data.data)) {
+          setEmpresas(empresasRes.data.data.map(e => ({ ...e, id: e.empresaId ?? e.id })))
+        } else {
+          setEmpresas([])
+        }
+        // Lista avances
+        if (Array.isArray(listaAvancesRes)) {
+          setListaAvances(listaAvancesRes)
+        } else if (listaAvancesRes?.data && Array.isArray(listaAvancesRes.data)) {
+          setListaAvances(listaAvancesRes.data)
+        } else if (listaAvancesRes?.data?.data && Array.isArray(listaAvancesRes.data.data)) {
+          setListaAvances(listaAvancesRes.data.data)
+        } else {
+          setListaAvances([])
+        }
+
+      } catch (error) {
+        console.error("Error fetching master data:", error)
+      }
+    }
+
+    fetchMasterData()
+  }, [])
+
+  // Handle adding new master data item
+  const handleAddNewItem = async (type: string, name: string, additionalData: any = {}) => {
+    try {
+      // Prepare data for API
+      const data = {
+        nombre: name,
+        ...additionalData,
+        estado: true,
+        usuarioCreacion: "usuario_actual", 
+      }
+
+      // Define endpoint based on type
+      let endpoint = ""
+      switch (type) {
+        case "ingredienteActivo":
+          endpoint = "/maestras/ingredientes-activos"
+          break
+        case "tipoProducto":
+          endpoint = "/maestras/tipos-producto"
+          break
+        case "claseUso":
+          endpoint = "/maestras/clases-uso"
+          break
+        case "bandaTox":
+          endpoint = "/maestras/bandas-toxicologicas"
+          break
+        case "formulacion":
+          endpoint = "/maestras/formulaciones"
+          break
+        case "cultivo":
+          endpoint = "/maestras/cultivos"
+          break
+        case "plaga":
+          endpoint = "/maestras/plagas"
+          break
+        case "tipoRegistroMarca":
+          endpoint = "/maestras/tipos-registro-marca"
+          break
+        case "claseRegistroMarca":
+          endpoint = "/maestras/clases-registro-marca"
+          break
+        case "empresa":
+          endpoint = "/maestras/empresas"
+          break
+        case "listaAvance":
+          endpoint = "/maestras/lista-avances"
+          break
+        default:
+          console.error("Unknown master data type:", type)
+          return
+      }
+
+      const response = await apiService.post<{ data: { id: number } }>(endpoint, data)
+
+      if (response.success && response.data) {
+        // Add new item to corresponding state
+        const newItem = { id: response.data.data.id, nombre: name, ...additionalData }
+
+        switch (type) {
+          case "ingredienteActivo":
+            setIngredientesActivos((prev) => [...prev, newItem])
+            break
+          case "tipoProducto":
+            setTiposProducto((prev) => [...prev, newItem])
+            break
+          case "claseUso":
+            setClasesUso((prev) => [...prev, newItem])
+            break
+          case "bandaTox":
+            setBandasTox((prev) => [...prev, newItem as BandaToxItem])
+            break
+          case "formulacion":
+            setFormulaciones((prev) => [...prev, newItem as FormulacionItem])
+            break
+          case "cultivo":
+            setCultivos((prev) => [...prev, newItem])
+            break
+          case "plaga":
+            setPlagas((prev) => [...prev, newItem])
+            break
+          case "tipoRegistroMarca":
+            setTiposRegistroMarca((prev) => [...prev, newItem])
+            break
+          case "claseRegistroMarca":
+            setClasesRegistroMarca((prev) => [...prev, newItem])
+            break
+          case "empresa":
+            setEmpresas((prev) => [...prev, newItem])
+            break
+          case "listaAvance":
+            setListaAvances((prev) => [...prev, newItem])
+            break
+        }
+
+        if (!newItem.id) {
+          const mockId = Math.floor(Math.random() * 1000) + 100
+          newItem.id = mockId
+
+          switch (newItemType) {
+            case "ingredienteActivo":
+              setIngredientesActivos((prev) => [...prev, { ...newItem, id: mockId }])
+              break
+            case "tipoProducto":
+              setTiposProducto((prev) => [...prev, { ...newItem, id: mockId }])
+              break
+            case "claseUso":
+              setClasesUso((prev) => [...prev, { ...newItem, id: mockId }])
+              break
+            case "bandaTox":
+              setBandasTox((prev) => [...prev, { ...newItem, id: mockId } as BandaToxItem])
+              break
+            case "formulacion":
+              setFormulaciones((prev) => [...prev, { ...newItem, id: mockId } as FormulacionItem])
+              break
+            case "cultivo":
+              setCultivos((prev) => [...prev, { ...newItem, id: mockId }])
+              break
+            case "plaga":
+              setPlagas((prev) => [...prev, { ...newItem, id: mockId }])
+              break
+            case "tipoRegistroMarca":
+              setTiposRegistroMarca((prev) => [...prev, { ...newItem, id: mockId }])
+              break
+            case "claseRegistroMarca":
+              setClasesRegistroMarca((prev) => [...prev, { ...newItem, id: mockId }])
+              break
+            case "empresa":
+              setEmpresas((prev) => [...prev, { ...newItem, id: mockId }])
+              break
+            case "listaAvance":
+              setListaAvances((prev) => [...prev, { ...newItem, id: mockId }])
+              break
+          }
+        }
+
+        return newItem
+      } else {
+        console.error("Error adding new item:", response.error)
+        return null
+      }
+    } catch (error) {
+      console.error("Error adding new item:", error)
+
+      const mockId = Math.floor(Math.random() * 1000) + 100
+      const newItem = { id: mockId, nombre: name, ...additionalData }
+
+      switch (type) {
+        case "ingredienteActivo":
+          setIngredientesActivos((prev) => [...prev, newItem])
+          break
+        case "tipoProducto":
+          setTiposProducto((prev) => [...prev, newItem])
+          break
+        case "claseUso":
+          setClasesUso((prev) => [...prev, newItem])
+          break
+        case "bandaTox":
+          setBandasTox((prev) => [...prev, newItem as BandaToxItem])
+          break
+        case "formulacion":
+          setFormulaciones((prev) => [...prev, newItem as FormulacionItem])
+          break
+        case "cultivo":
+          setCultivos((prev) => [...prev, newItem])
+          break
+        case "plaga":
+          setPlagas((prev) => [...prev, newItem])
+          break
+        case "tipoRegistroMarca":
+          setTiposRegistroMarca((prev) => [...prev, newItem])
+          break
+        case "claseRegistroMarca":
+          setClasesRegistroMarca((prev) => [...prev, newItem])
+          break
+        case "empresa":
+          setEmpresas((prev) => [...prev, newItem])
+          break
+        case "listaAvance":
+          setListaAvances((prev) => [...prev, newItem])
+          break
+      }
+
+      return newItem
+    }
+  }
+
+  const showAddNewDialog = (type: string, name: string) => {
+    setNewItemType(type)
+    setNewItemName(name)
+    setNewItemData({})
+    setOpenAddNewDialog(true)
+  }
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
-    }));
-  };
+      [field]: value,
+    }))
+  }
+
+  type NestedObject = Record<string, unknown> | undefined
+
+  const handleNestedChange = (parent: keyof Partial<IntProductoRegistradoEntity>, field: string, value: string) => {
+    setFormData((prev: Partial<IntProductoRegistradoEntity>) => {
+      const nestedObj = prev[parent] as NestedObject
+      if (Array.isArray(nestedObj)) {
+        return prev
+      }
+      return {
+        ...prev,
+        [parent]: {
+          ...(nestedObj || {}),
+          [field]: value,
+        },
+      }
+    })
+  }
+
+  const handleIngredienteInputChange = (field: string, value: string) => {
+    setNuevoIngrediente((prev) => ({
+      ...prev,
+      [field]: value,
+    }))
+  }
 
   const handleAddIngrediente = () => {
-    setIngredientes(prev => [...prev, { nombre: "", concentracion: "", porcentaje: "" }]);
-  };
+    setIngredientes([...ingredientes, { ...nuevoIngrediente }])
+    setNuevoIngrediente({ nombre: "", concentracion: "", porcentaje: "" })
+  }
 
   const handleRemoveIngrediente = (index: number) => {
-    setIngredientes(prev => prev.filter((_, i) => i !== index));
-  };
+    setIngredientes(ingredientes.filter((_, i) => i !== index))
+  }
 
-  const handleAddCultivo = () => {
-    setCultivos(prev => [...prev, { cultivoId: prev.length + 1, cultivoNombre: "", numeroResolucion: "", plagas: [] }]);
-  };
+  const handleUsoInputChange = (field: string, value: string | number) => {
+    setNuevoUso((prev) => ({
+      ...prev,
+      [field]: value,
+    }))
+  }
 
-  const handleRemoveCultivo = (index: number) => {
-    setCultivos(prev => prev.filter((_, i) => i !== index));
-  };
+  const handleAddUso = () => {
+    const newUso = {
+      ...nuevoUso,
+      plagas: [],
+    }
+    setUsos((prevUsos) => [...prevUsos, newUso])
+    setNuevoUso({ cultivoNombre: "", numeroResolucion: "" })
 
-  const handleAddPlaga = (cultivoIndex: number) => {
-    const newCultivos = [...cultivos];
-    newCultivos[cultivoIndex].plagas.push({
-      nombreComun: "",
-      nombreCientifico: "",
-      dosis: "",
-      lmr: "",
-      pcDias: 0,
-      prHoras: 0
-    });
-    setCultivos(newCultivos);
-  };
+    setPlagasUso((prev) => ({
+      ...prev,
+      [usos.length]: [],
+    }))
+  }
 
+  const handleRemoveUso = (index: number) => {
+    setUsos(usos.filter((_, i) => i !== index))
+    const newPlagas = { ...plagasUso }
+    delete newPlagas[index]
+    setPlagasUso(newPlagas)
+  }
+
+  const handlePlagaInputChange = (field: string, value: string | number) => {
+    setNuevaPlaga((prev) => ({
+      ...prev,
+      [field]: value,
+    }))
+  }
+
+  const handleAddPlaga = () => {
+    if (usoSeleccionado !== null) {
+      const currentPlagas = plagasUso[usoSeleccionado] || []
+      const updatedPlagas = {
+        ...plagasUso,
+        [usoSeleccionado]: [...currentPlagas, { ...nuevaPlaga }],
+      }
+      setPlagasUso(updatedPlagas)
+
+      const updatedUsos = [...usos]
+      updatedUsos[usoSeleccionado].plagas = updatedPlagas[usoSeleccionado]
+      setUsos(updatedUsos)
+
+      setNuevaPlaga({
+        nombreComun: "",
+        nombreCientifico: "",
+        dosis: "",
+        lmr: "",
+        pcDias: 0,
+        prHoras: 0,
+      })
+    }
+  }
+
+  const handleRemovePlaga = (usoIndex: number, plagaIndex: number) => {
+    const currentPlagas = [...(plagasUso[usoIndex] || [])]
+    currentPlagas.splice(plagaIndex, 1)
+
+    const updatedPlagas = {
+      ...plagasUso,
+      [usoIndex]: currentPlagas,
+    }
+    setPlagasUso(updatedPlagas)
+
+    const updatedUsos = [...usos]
+    updatedUsos[usoIndex].plagas = currentPlagas
+    setUsos(updatedUsos)
+  }
+
+  // Add/remove fabricantes
+  const handleAddFabricante = () => {
+    setFabricantes([...fabricantes, { nombre: "", pais: "", direccion: "" }])
+  }
+
+  const handleRemoveFabricante = (index: number) => {
+    if (fabricantes.length > 1) {
+      setFabricantes(fabricantes.filter((_, i) => i !== index))
+    }
+  }
+
+  const handleFabricanteChange = (index: number, field: string, value: string) => {
+    const updatedFabricantes = [...fabricantes]
+    updatedFabricantes[index] = { ...updatedFabricantes[index], [field]: value }
+    setFabricantes(updatedFabricantes)
+  }
+
+  // Add/remove formuladores
+  const handleAddFormulador = () => {
+    setFormuladores([...formuladores, { nombre: "", pais: "", direccion: "" }])
+  }
+
+  const handleRemoveFormulador = (index: number) => {
+    if (formuladores.length > 1) {
+      setFormuladores(formuladores.filter((_, i) => i !== index))
+    }
+  }
+
+  const handleFormuladorChange = (index: number, field: string, value: string) => {
+    const updatedFormuladores = [...formuladores]
+    updatedFormuladores[index] = { ...updatedFormuladores[index], [field]: value }
+    setFormuladores(updatedFormuladores)
+  }
+
+  // Handle logo upload
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setLogoFile(file)
+      const reader = new FileReader()
+      reader.onload = () => {
+        setLogoPreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+
+      // Update form data
+      setFormData((prev) => ({
+        ...prev,
+        marca: {
+          ...prev.marca!,
+          logo: URL.createObjectURL(file), // This is temporary for preview only
+        },
+      }))
+    }
+  }
+
+  // Handle document uploads
+  const handleDocumentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (files && files.length > 0) {
+      const newDocumentos: DocumentoAdjunto[] = []
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i]
+        newDocumentos.push({
+          id: `doc-${Date.now()}-${i}`,
+          nombre: file.name,
+          tipo: file.type,
+          tamano: formatFileSize(file.size),
+          archivo: file,
+        })
+      }
+
+      setDocumentos([...documentos, ...newDocumentos])
+    }
+  }
+
+  // Format file size
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return "0 Bytes"
+    const k = 1024
+    const sizes = ["Bytes", "KB", "MB", "GB"]
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
+  }
+
+  // Preview document
+  const handlePreviewDocument = (documento: DocumentoAdjunto) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      setPreviewDocument(reader.result as string)
+    }
+    reader.readAsDataURL(documento.archivo)
+  }
+
+  // Remove document
+  const handleRemoveDocument = (id: string) => {
+    setDocumentos(documentos.filter((doc) => doc.id !== id))
+    if (previewDocument) {
+      setPreviewDocument(null)
+    }
+  }
+
+  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    // Here you would typically send the data to your API
-    console.log({
-      ...formData,
-      ingredienteActivo: ingredientes,
-      usos: cultivos
+    e.preventDefault()
+    setSubmitting(true);
+    Swal.fire({
+      title: 'Guardando...',
+      text: 'Por favor espere',
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      backdrop: true,
+      didOpen: () => {
+        Swal.showLoading();
+      },
     });
-  };
 
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <Tabs defaultValue="general" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="general">General</TabsTrigger>
-          <TabsTrigger value="ingredientes">Ingredientes</TabsTrigger>
-          <TabsTrigger value="empresas">Empresas</TabsTrigger>
-          <TabsTrigger value="usos">Usos</TabsTrigger>
-        </TabsList>
+    // Build certificado object ensuring we send only the IDs of fabricantes y formuladores
+    const certificadoWithIds: any = {
+      ...(formData.certificado || {}),
+      fabricante: fabricantes.map((f: any) => (f.id ?? f.nombre)),
+      formulador: formuladores.map((f: any) => (f.id ?? f.nombre)),
+    }
 
-        <TabsContent value="general">
-          <Card>
-            <CardHeader>
-              <CardTitle>Información General</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Tipo de Producto</label>
-                    <Select name="tipoProducto" onValueChange={(value) => handleInputChange({ target: { name: "tipoProducto", value } } as any)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecciona tipo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="QUIMICOS">Químicos</SelectItem>
-                        <SelectItem value="BIOLOGICOS">Biológicos</SelectItem>
-                        <SelectItem value="FERTILIZANTES">Fertilizantes</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Producto</label>
-                    <Input name="producto" onChange={handleInputChange} />
-                  </div>
+    // Prepare the complete data object
+    const completeData: IntProductoRegistradoEntity = {
+      ...(formData as IntProductoRegistradoEntity),
+      certificado: certificadoWithIds as any,
+      ingredienteActivo: ingredientes,
+      fabricantes: fabricantes,
+      formuladores: formuladores,
+      usos: usos,
+    }
+
+    //console.log("Form data to submit:", completeData)
+
+    try {
+      // Llamada real al endpoint para guardar el producto
+      const headers: Record<string, string> = {};
+      const selectedCompany = sessionStorage.getItem("selected_company");
+      if (selectedCompany) {
+        try {
+          const companyObj = JSON.parse(selectedCompany);
+          if (companyObj?.id) {
+            headers.IdEmpresa = companyObj.id.toString();
+          }
+        } catch (e) {
+          console.warn("Error parseando selected_company:", e);
+        }
+      }
+
+      // Agregar IdUsuario / Usuario al header si existen
+      const currentUser = sessionStorage.getItem("current_user");
+      if (currentUser) {
+        try {
+          const userObj = JSON.parse(currentUser);
+          if (userObj?.codigoUsuario) {
+            headers.codigoUsuario = userObj.codigoUsuario.toString();
+          }
+          if (userObj?.loginUsuario) {
+            headers.loginUsuario = userObj.loginUsuario;
+          }
+        } catch (e) {
+          console.warn("Error parseando current_user:", e);
+        }
+      }
+
+      const response = await apiService.post<unknown>("/Formulario/guardar-producto", completeData, headers);
+
+      if (!response.success) {
+        throw new Error(response.error || "Error al guardar el producto");
+      }
+
+      await Swal.fire({
+        icon: 'success',
+        title: '¡Producto registrado! 🎉',
+        showConfirmButton: false,
+        timer: 1800,
+        background: '#ecfdf5',
+        color: '#065f46',
+      });
+
+      // Reset form after successful submission
+      setFormData({
+        tipoProducto: "",
+        producto: "",
+        formulacion: "",
+        claseUso: "",
+        bandaToxicologica: "",
+        presentacionRegistrada: "",
+        tipoEnvase: "",
+        materialesEnvase: "",
+        descripcion: "",
+        dictamenTecnico: "",
+        estabilidadProducto: "",
+        ingredienteActivo: [],
+        avance: {
+          numeroExpediente: "",
+          presentacionExpediente: "",
+          terminoRegistro: "",
+          comentario: "",
+          statusAvance: "",
+          valor: "",
+        },
+        certificado: {
+          numeroCertificado: "",
+          fechaRegistro: "",
+          fechaActualizacion: "",
+          vigenciaRegistro: "",
+          formulador: [],
+          fabricante: [],
+        },
+        fabricantes: [],
+        formuladores: [],
+        marca: {
+          marcaRegistrada: "",
+          numeroRegistro: "",
+          claseRegistroMarca: "",
+          tipoRegistroMarca: "",
+          fechaRegistro: "",
+          vigencia: "",
+          logo: "",
+        },
+        usos: [],
+      })
+      setIngredientes([])
+      setFabricantes([])
+      setFormuladores([])
+      setUsos([])
+      setPlagasUso({})
+      setCurrentStep(1)
+    setSubmitting(false)
+    } catch (error) {
+      console.error("Error registering product:", error)
+      await Swal.fire({
+    icon: 'error',
+    title: 'Ups... Ocurrió un error',
+    text: 'No se pudo registrar el producto. Intenta nuevamente.',
+    confirmButtonColor: '#dc2626',
+  });
+  setSubmitting(false)
+    }
+  }
+
+  // Navigation functions
+  const goToStep = (step: number) => {
+    setCurrentStep(step)
+  }
+
+  const nextStep = () => {
+    if (currentStep < steps.length) {
+      setCurrentStep(currentStep + 1)
+    }
+  }
+
+  const prevStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1)
+    }
+  }
+
+  // Render step content based on current step
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="bg-green-600 p-2 rounded-md text-white">
+                <ClipboardList size={24} />
+              </div>
+              <h2 className="text-2xl font-semibold">Información General del Producto</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium mb-1">Tipo de Producto</label>
+                <ComboboxWithAddNew
+                  data={((tiposProducto || []).map((f) => ({ id: f.tipoProductoId, nombre: f.nombre })))}
+                  value={formData.tipoProducto || ""}
+                  onChange={(value) => handleInputChange("tipoProducto", value.toString())}
+                  placeholder="Selecciona tipo de producto"
+                  label="tipo de producto"
+                  onAddNew={(name) => handleAddNewItem("tipoProducto", name)}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Nombre Comercial</label>
+                <Input
+                  value={formData.producto || ""}
+                  onChange={(e) => handleInputChange("producto", e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <label className="block text-sm font-medium mb-1">Formulación</label>
+                <ComboboxWithAddNew
+                  data={(formulaciones || []).map((f) => ({ id: f.formulacionId, nombre: `${f.codigo} - ${f.descripcion}` }))}
+                  value={formData.formulacion || ""}
+                  onChange={(value) => handleInputChange("formulacion", value.toString())}
+                  placeholder="Selecciona formulación"
+                  label="formulación"
+                  onAddNew={(name) => {
+                    // Extract code and description if provided in format "CODE - Description"
+                    const match = name.match(/^([A-Z0-9]+)\s*-\s*(.+)$/i)
+                    if (match) {
+                      handleAddNewItem("formulacion", name, { codigo: match[1], descripcion: match[2] })
+                    } else {
+                      showAddNewDialog("formulacion", name)
+                    }
+                  }}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Clase de Uso</label>
+                <ComboboxWithAddNew
+                  data={((clasesUso || []).map((f) => ({ id: f.claseUsoId, nombre: f.nombre })))}
+                  value={formData.claseUso || ""}
+                  onChange={(value) => handleInputChange("claseUso", value.toString())}
+                  placeholder="Selecciona clase de uso"
+                  label="clase de uso"
+                  onAddNew={(name) => handleAddNewItem("claseUso", name)}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Banda Toxicológica</label>
+                <ComboboxWithAddNew
+                  data={(bandasTox || []).map((b) => ({ id: b.bandaToxId, nombre: b.descripcion }))}
+                  value={formData.bandaToxicologica || ""}
+                  onChange={(value) => handleInputChange("bandaToxicologica", value.toString())}
+                  placeholder="Selecciona banda toxicológica"
+                  label="banda toxicológica"
+                  onAddNew={(name) => showAddNewDialog("bandaTox", name)}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium mb-1">Presentación Registrada</label>
+                <Input
+                  value={formData.presentacionRegistrada || ""}
+                  onChange={(e) => handleInputChange("presentacionRegistrada", e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Tipo de Envase</label>
+                <Input
+                  value={formData.tipoEnvase || ""}
+                  onChange={(e) => handleInputChange("tipoEnvase", e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Materiales del Envase</label>
+              <Input
+                value={formData.materialesEnvase || ""}
+                onChange={(e) => handleInputChange("materialesEnvase", e.target.value)}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium mb-1">Descripción</label>
+                <Textarea
+                  value={formData.descripcion || ""}
+                  onChange={(e) => handleInputChange("descripcion", e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Dictamen Técnico</label>
+                <Textarea
+                  value={formData.dictamenTecnico || ""}
+                  onChange={(e) => handleInputChange("dictamenTecnico", e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Estabilidad del Producto</label>
+              <Textarea
+                value={formData.estabilidadProducto || ""}
+                onChange={(e) => handleInputChange("estabilidadProducto", e.target.value)}
+              />
+            </div>
+          </div>
+        )
+
+      case 2:
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="bg-green-600 p-2 rounded-md text-white">
+                <Leaf size={24} />
+              </div>
+              <h2 className="text-2xl font-semibold">Ingredientes Activos y Composición</h2>
+            </div>
+
+            {/* Input form for new ingredients */}
+            <div className="bg-white p-6 rounded-lg border border-gray-200">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Nombre</label>
+                  <ComboboxWithAddNew
+                    data={((ingredientesActivos || []).map((ia) => ({ id: ia.ingredienteActivoId, nombre: ia.nombre })))}
+                    value={nuevoIngrediente.nombre}
+                    onChange={(value) => {
+                      if (typeof value === "string") {
+                        handleIngredienteInputChange("nombre", value)
+                      } else {
+                        const ingrediente = ingredientesActivos.find((i) => i.id === value)
+                        if (ingrediente) {
+                          handleIngredienteInputChange("nombre", ingrediente.nombre)
+                        }
+                      }
+                    }}
+                    placeholder="Selecciona ingrediente activo"
+                    label="ingrediente activo"
+                    onAddNew={(name) => handleAddNewItem("ingredienteActivo", name)}
+                  />
                 </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Formulación</label>
-                    <Input name="formulacion" onChange={handleInputChange} />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Clase de Uso</label>
-                    <Select name="claseUso" onValueChange={(value) => handleInputChange({ target: { name: "claseUso", value } } as any)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecciona clase" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="FUNGICIDA">Fungicida</SelectItem>
-                        <SelectItem value="INSECTICIDA">Insecticida</SelectItem>
-                        <SelectItem value="HERBICIDA">Herbicida</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Concentración</label>
+                  <Input
+                    value={nuevoIngrediente.concentracion}
+                    onChange={(e) => handleIngredienteInputChange("concentracion", e.target.value)}
+                    placeholder="Ingrese concentración"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Porcentaje (%)</label>
+                  <Input
+                    value={nuevoIngrediente.porcentaje}
+                    onChange={(e) => handleIngredienteInputChange("porcentaje", e.target.value)}
+                    placeholder="Ingrese porcentaje (%)"
+                  />
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+              <div className="mt-4 flex justify-end">
+                <Button
+                  onClick={handleAddIngrediente}
+                  type="button"
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                  size="icon"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
 
-        <TabsContent value="ingredientes">
-          <Card>
-            <CardHeader>
-              <CardTitle>Ingredientes Activos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {ingredientes.map((ingrediente, index) => (
-                <div key={index} className="grid grid-cols-3 gap-4 mb-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Nombre</label>
-                    <Input 
-                      value={ingrediente.nombre} 
-                      onChange={(e) => {
-                        const newIngredientes = [...ingredientes];
-                        newIngredientes[index].nombre = e.target.value;
-                        setIngredientes(newIngredientes);
-                      }}
+            {/* Table of added ingredients */}
+            <div className="bg-green-50 p-4 rounded-lg">
+              <h3 className="text-lg font-medium mb-4">Items agregados</h3>
+
+              {ingredientes.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nombre</TableHead>
+                      <TableHead>Concentración</TableHead>
+                      <TableHead>Porcentaje (%)</TableHead>
+                      <TableHead className="text-right">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {ingredientes.map((ingrediente, index) => (
+                      <TableRow key={index}>
+                        <TableCell>{ingrediente.nombre}</TableCell>
+                        <TableCell>{ingrediente.concentracion}</TableCell>
+                        <TableCell>{ingrediente.porcentaje}</TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleRemoveIngrediente(index)}
+                            type="button"
+                            className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-4 text-gray-500">No hay ingredientes agregados</div>
+              )}
+            </div>
+          </div>
+        )
+
+      case 3:
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="bg-green-600 p-2 rounded-md text-white">
+                <FileText size={24} />
+              </div>
+              <h2 className="text-2xl font-semibold">Estado y Avance del Registro</h2>
+            </div>
+            <p className="text-gray-500 mb-6">Complete los campos para continuar con el registro</p>
+
+            <div className="bg-gray-50 p-6 rounded-lg">
+              <h3 className="text-lg font-medium mb-4">Información de Avance</h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Número de Expediente</label>
+                  <Input
+                    value={formData.avance?.numeroExpediente || ""}
+                    onChange={(e) => handleNestedChange("avance", "numeroExpediente", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Presentación Expediente</label>
+                  <Input
+                    type="date"
+                    value={formData.avance?.presentacionExpediente || ""}
+                    onChange={(e) => handleNestedChange("avance", "presentacionExpediente", e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Término Registro</label>
+                  <Input
+                    type="date"
+                    value={formData.avance?.terminoRegistro || ""}
+                    onChange={(e) => handleNestedChange("avance", "terminoRegistro", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Status Avance</label>
+                  <ComboboxWithAddNew
+                    data={((listaAvances || []).map((la) => ({ id: la.listaAvanceId, nombre: la.nombre })))}
+                    value={formData.avance?.statusAvance || ""}
+                    onChange={(value) => handleNestedChange("avance", "statusAvance", value.toString())}
+                    placeholder="Selecciona status"
+                    label="status de avance"
+                    onAddNew={(name) => showAddNewDialog("listaAvance", name)}
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <label className="block text-sm font-medium mb-1">Comentario</label>
+                <Textarea
+                  value={formData.avance?.comentario || ""}
+                  onChange={(e) => handleNestedChange("avance", "comentario", e.target.value)}
+                />
+              </div>
+
+              <div className="mt-4">
+                <label className="block text-sm font-medium mb-1">Valor</label>
+                <Input
+                  value={formData.avance?.valor || ""}
+                  onChange={(e) => handleNestedChange("avance", "valor", e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="bg-gray-50 p-6 rounded-lg">
+              <h3 className="text-lg font-medium mb-4">Información de Certificado</h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Número de Certificado</label>
+                  <Input
+                    value={formData.certificado?.numeroCertificado || ""}
+                    onChange={(e) => handleNestedChange("certificado", "numeroCertificado", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Fecha de Registro</label>
+                  <Input
+                    type="date"
+                    value={formData.certificado?.fechaRegistro || ""}
+                    onChange={(e) => handleNestedChange("certificado", "fechaRegistro", e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Fecha de Actualización</label>
+                  <Input
+                    type="date"
+                    value={formData.certificado?.fechaActualizacion || ""}
+                    onChange={(e) => handleNestedChange("certificado", "fechaActualizacion", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Vigencia de Registro</label>
+                  <Input
+                    value={formData.certificado?.vigenciaRegistro || ""}
+                    onChange={(e) => handleNestedChange("certificado", "vigenciaRegistro", e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+
+      case 4:
+        return (
+          <div className="space-y-6 w-full">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="bg-green-600 p-2 rounded-md text-white">
+                <Target size={24} />
+              </div>
+              <h2 className="text-2xl font-semibold">Aplicaciones y Usos Autorizados</h2>
+            </div>
+
+            {/* Input form for new usos - modificado para ocupar todo el ancho */}
+            <div className="bg-white p-6 rounded-lg border border-gray-200 w-full">
+              <h3 className="text-lg font-medium mb-4">Agregar Cultivo</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+                <div className="w-full">
+                  <label className="block text-sm font-medium mb-1">Nombre del Cultivo</label>
+                  <ComboboxWithAddNew
+                    data={((cultivos || []).map(c => ({ id: c.cultivoId, nombre: c.nombre })))}
+                    value={nuevoUso.cultivoId || nuevoUso.cultivoNombre}
+                    onChange={(value) => {
+                      if (typeof value === "string") {
+                        handleUsoInputChange("cultivoNombre", value)
+                        handleUsoInputChange("cultivoId", undefined as any)
+                      } else {
+                        const cultivo = cultivos.find((c) => c.cultivoId === value)
+                        if (cultivo) {
+                          handleUsoInputChange("cultivoNombre", cultivo.nombre)
+                          handleUsoInputChange("cultivoId", cultivo.cultivoId)
+                        }
+                      }
+                    }}
+                    placeholder="Selecciona cultivo"
+                    label="cultivo"
+                    onAddNew={(name) => handleAddNewItem("cultivo", name)}
+                  />
+                </div>
+                <div className="w-full relative">
+                  <label className="block text-sm font-medium mb-1">Número de Resolución</label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={nuevoUso.numeroResolucion}
+                      onChange={(e) => handleUsoInputChange("numeroResolucion", e.target.value)}
+                      placeholder="Ingrese número de resolución"
+                      className="flex-1"
                     />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Concentración</label>
-                    <Input 
-                      value={ingrediente.concentracion} 
-                      onChange={(e) => {
-                        const newIngredientes = [...ingredientes];
-                        newIngredientes[index].concentracion = e.target.value;
-                        setIngredientes(newIngredientes);
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Porcentaje</label>
-                    <Input 
-                      value={ingrediente.porcentaje} 
-                      onChange={(e) => {
-                        const newIngredientes = [...ingredientes];
-                        newIngredientes[index].porcentaje = e.target.value;
-                        setIngredientes(newIngredientes);
-                      }}
-                    />
-                  </div>
-                  <div className="col-span-3 flex justify-end">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={() => handleRemoveIngrediente(index)}
+                    <Button
+                      onClick={handleAddUso}
+                      type="button"
+                      className="bg-green-600 hover:bg-green-700 text-white min-h-[40px] min-w-[40px]"
+                      size="icon"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Plus className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
-              ))}
-              <Button 
-                variant="outline" 
-                onClick={handleAddIngrediente}
-                className="w-full"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Agregar Ingrediente
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
+              </div>
+            </div>
 
-        <TabsContent value="empresas">
-          {/* Similar structure for empresas section */}
-        </TabsContent>
+            {/* Table of added usos - modificado para ocupar todo el ancho */}
+            <div className="bg-green-50 p-4 rounded-lg w-full">
+              <h3 className="text-lg font-medium mb-4">Cultivos agregados</h3>
 
-        <TabsContent value="usos">
-          <Card>
-            <CardHeader>
-              <CardTitle>Usos y Cultivos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {cultivos.map((cultivo, cultivoIndex) => (
-                <div key={cultivo.cultivoId} className="mb-6">
-                  <div className="grid grid-cols-2 gap-4 mb-4">
+              {usos.length > 0 ? (
+                <div className="w-full overflow-x-auto">
+                  <Table className="w-full">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nombre del Cultivo</TableHead>
+                        <TableHead>Número de Resolución</TableHead>
+                        <TableHead>Plagas</TableHead>
+                        <TableHead className="text-right">Acciones</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {usos.map((uso, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{uso.cultivoNombre}</TableCell>
+                          <TableCell>{uso.numeroResolucion}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              {(plagasUso[index]?.length || 0) > 0 ? (
+                                <Badge variant="outline" className="bg-green-100 text-green-800 hover:bg-green-200">
+                                  {plagasUso[index]?.length || 0} plagas
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="bg-gray-100 text-gray-800 hover:bg-gray-200">
+                                  Sin plagas
+                                </Badge>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  setSelectedPlagas(plagasUso[index] || [])
+                                  setOpenPlagasDialog(true)
+                                }}
+                                type="button"
+                                className="h-8 w-8 text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setUsoSeleccionado(index)}
+                                type="button"
+                                className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                              >
+                                <Plus className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleRemoveUso(index)}
+                                type="button"
+                                className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500 bg-white rounded-md border border-gray-200 w-full">
+                  No hay cultivos agregados
+                </div>
+              )}
+            </div>
+
+            {/* Plagas form for selected uso - modificado para ocupar todo el ancho */}
+            {usoSeleccionado !== null && (
+              <Card className="mt-6 w-full">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <div className="flex items-center gap-2">
+                    <Leaf className="h-5 w-5 text-green-500" />
+                    <h3 className="text-lg font-semibold">{usos[usoSeleccionado]?.cultivoNombre}</h3>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setUsoSeleccionado(null)}
+                    type="button"
+                    className="h-8 w-8 hover:bg-gray-100"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </CardHeader>
+                <CardContent className="pt-4 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium mb-1">Cultivo</label>
-                      <Input 
-                        value={cultivo.cultivoNombre} 
-                        onChange={(e) => {
-                          const newCultivos = [...cultivos];
-                          newCultivos[cultivoIndex].cultivoNombre = e.target.value;
-                          setCultivos(newCultivos);
-                        }}
-                      />
+                      <label className="block text-sm font-medium mb-1">Nombre Común</label>
+                      <div className="relative">
+                        <ComboboxWithAddNew
+                          data={((plagas || []).map(p => ({ id: p.plagaId, nombre: p.nombre })))}
+                          value={nuevaPlaga.nombreComun}
+                          onChange={(value) => {
+                            if (typeof value === "string") {
+                              handlePlagaInputChange("nombreComun", value)
+                            } else {
+                              const plaga = plagas.find((p) => p.id === value)
+                              if (plaga) {
+                                handlePlagaInputChange("nombreComun", plaga.nombre)
+                              }
+                            }
+                          }}
+                          placeholder="Selecciona plaga"
+                          label="plaga"
+                          onAddNew={(name) => handleAddNewItem("plaga", name)}
+                        />
+                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                          <Search className="h-4 w-4 text-gray-400" />
+                        </div>
+                      </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Resolución</label>
-                      <Input 
-                        value={cultivo.numeroResolucion} 
-                        onChange={(e) => {
-                          const newCultivos = [...cultivos];
-                          newCultivos[cultivoIndex].numeroResolucion = e.target.value;
-                          setCultivos(newCultivos);
-                        }}
+                      <label className="block text-sm font-medium mb-1">Nombre Científico</label>
+                      <Input
+                        value={nuevaPlaga.nombreCientifico}
+                        onChange={(e) => handlePlagaInputChange("nombreCientifico", e.target.value)}
+                        placeholder="Ingrese nombre científico"
+                        className="w-full"
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-4">
-                    {cultivo.plagas.map((plaga, plagaIndex) => (
-                      <div key={plagaIndex} className="grid grid-cols-4 gap-4 mb-4">
-                        <div>
-                          <label className="block text-sm font-medium mb-1">Nombre Común</label>
-                          <Input 
-                            value={plaga.nombreComun} 
-                            onChange={(e) => {
-                              const newCultivos = [...cultivos];
-                              newCultivos[cultivoIndex].plagas[plagaIndex].nombreComun = e.target.value;
-                              setCultivos(newCultivos);
-                            }}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-1">Nombre Científico</label>
-                          <Input 
-                            value={plaga.nombreCientifico} 
-                            onChange={(e) => {
-                              const newCultivos = [...cultivos];
-                              newCultivos[cultivoIndex].plagas[plagaIndex].nombreCientifico = e.target.value;
-                              setCultivos(newCultivos);
-                            }}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-1">Dosis</label>
-                          <Input 
-                            value={plaga.dosis} 
-                            onChange={(e) => {
-                              const newCultivos = [...cultivos];
-                              newCultivos[cultivoIndex].plagas[plagaIndex].dosis = e.target.value;
-                              setCultivos(newCultivos);
-                            }}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-1">LMR</label>
-                          <Input 
-                            value={plaga.lmr} 
-                            onChange={(e) => {
-                              const newCultivos = [...cultivos];
-                              newCultivos[cultivoIndex].plagas[plagaIndex].lmr = e.target.value;
-                              setCultivos(newCultivos);
-                            }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                    <Button 
-                      variant="outline" 
-                      onClick={() => handleAddPlaga(cultivoIndex)}
-                      className="w-full"
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Dosis</label>
+                      <Input
+                        value={nuevaPlaga.dosis}
+                        onChange={(e) => handlePlagaInputChange("dosis", e.target.value)}
+                        placeholder="Ingrese dosis"
+                        className="w-full"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Unidades: gr/L o ml/L</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">LMR</label>
+                      <Input
+                        value={nuevaPlaga.lmr}
+                        onChange={(e) => handlePlagaInputChange("lmr", e.target.value)}
+                        placeholder="Ingrese LMR"
+                        className="w-full"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Límite Mínimo de Residuo</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">PC (Días)</label>
+                      <Input
+                        type="number"
+                        value={nuevaPlaga.pcDias}
+                        onChange={(e) => handlePlagaInputChange("pcDias", Number.parseInt(e.target.value) || 0)}
+                        placeholder="Ingrese PC en días"
+                        className="w-full"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Período de Carencia</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">PR (Horas)</label>
+                      <Input
+                        type="number"
+                        value={nuevaPlaga.prHoras}
+                        onChange={(e) => handlePlagaInputChange("prHoras", Number.parseInt(e.target.value) || 0)}
+                        placeholder="Ingrese PR en horas"
+                        className="w-full"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Período de Reingreso</p>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <Button
+                      onClick={handleAddPlaga}
+                      type="button"
+                      className="bg-green-600 hover:bg-green-700 text-white"
                     >
-                      <Plus className="mr-2 h-4 w-4" />
+                      <Plus className="h-4 w-4 mr-2" />
                       Agregar Plaga
                     </Button>
                   </div>
 
-                  <div className="flex justify-end">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={() => handleRemoveCultivo(cultivoIndex)}
+                  {(plagasUso[usoSeleccionado]?.length || 0) > 0 && (
+                    <div className="mt-4 w-full">
+                      <h4 className="text-md font-medium mb-2">Plagas agregadas</h4>
+                      <div className="rounded-md border w-full">
+                        <Table className="w-full">
+                          <TableHeader className="bg-gray-50">
+                            <TableRow>
+                              <TableHead className="w-1/4">Nombre Común</TableHead>
+                              <TableHead className="w-1/4">Nombre Científico</TableHead>
+                              <TableHead className="w-1/4">Dosis</TableHead>
+                              <TableHead className="w-1/4 text-right">Acciones</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {(plagasUso[usoSeleccionado] || []).map((plaga, plagaIndex) => (
+                              <TableRow key={plagaIndex} className={plagaIndex % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                                <TableCell>{plaga.nombreComun}</TableCell>
+                                <TableCell>{plaga.nombreCientifico}</TableCell>
+                                <TableCell>{plaga.dosis}</TableCell>
+                                <TableCell className="text-right">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleRemovePlaga(usoSeleccionado, plagaIndex)}
+                                    type="button"
+                                    className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )
+
+      case 5:
+        //console.log("Empresas para combobox:", empresas);
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="bg-green-600 p-2 rounded-md text-white">
+                <Factory size={24} />
+              </div>
+              <h2 className="text-2xl font-semibold">Datos del Fabricante</h2>
+            </div>
+
+            {fabricantes.map((fabricante, index) => (
+              <Card key={index}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <h3 className="text-lg font-semibold">Fabricante {index + 1}</h3>
+                  {fabricantes.length > 1 && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRemoveFabricante(index)}
+                      type="button"
+                      className="h-8 w-8 hover:bg-gray-100"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
+                  )}
+                </CardHeader>
+                <CardContent className="pt-4 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Nombre</label>
+                      <div className="relative">
+                        <ComboboxWithAddNew
+                          data={empresas}
+                          value={fabricante.nombre}
+                          onChange={(value) => {
+                            if (typeof value === "string") {
+                              handleFabricanteChange(index, "nombre", value)
+                            } else {
+                              const empresa = empresas.find((e) => e.id === value)
+                              if (empresa) {
+                                handleFabricanteChange(index, "nombre", empresa.nombre)
+                                if (empresa.pais) handleFabricanteChange(index, "pais", empresa.pais)
+                                if (empresa.direccion) handleFabricanteChange(index, "direccion", empresa.direccion)
+                              }
+                            }
+                          }}
+                          placeholder="Selecciona empresa"
+                          label="empresa"
+                          onAddNew={(name) => showAddNewDialog("empresa", name)}
+                        />
+                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                          <Search className="h-4 w-4 text-gray-400" />
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">País</label>
+                      <Input
+                        value={fabricante.pais}
+                        onChange={(e) => handleFabricanteChange(index, "pais", e.target.value)}
+                        placeholder="Ingrese país"
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Dirección</label>
+                    <Input
+                      value={fabricante.direccion}
+                      onChange={(e) => handleFabricanteChange(index, "direccion", e.target.value)}
+                      placeholder="Ingrese dirección"
+                      className="w-full"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+
+            <div className="flex justify-end">
+              <Button
+                onClick={handleAddFabricante}
+                type="button"
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                <Plus className="h-4 w-4 mr-2" /> Agregar Fabricante
+              </Button>
+            </div>
+          </div>
+        )
+
+      case 6:
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="bg-green-600 p-2 rounded-md text-white">
+                <Building size={24} />
+              </div>
+              <h2 className="text-2xl font-semibold">Datos del Formulador</h2>
+            </div>
+
+            {formuladores.map((formulador, index) => (
+              <div key={index} className="bg-white p-6 rounded-lg border border-gray-200">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-medium">Formulador {index + 1}</h3>
+                  {formuladores.length > 1 && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRemoveFormulador(index)}
+                      className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Nombre</label>
+                    <ComboboxWithAddNew
+                      data={empresas}
+                      value={formulador.nombre}
+                      onChange={(value) => {
+                        if (typeof value === "string") {
+                          handleFormuladorChange(index, "nombre", value)
+                        } else {
+                          const empresa = empresas.find((e) => e.id === value)
+                          if (empresa) {
+                            handleFormuladorChange(index, "nombre", empresa.nombre)
+                            if (empresa.pais) handleFormuladorChange(index, "pais", empresa.pais)
+                            if (empresa.direccion) handleFormuladorChange(index, "direccion", empresa.direccion)
+                          }
+                        }
+                      }}
+                      placeholder="Selecciona empresa"
+                      label="empresa"
+                      onAddNew={(name) => showAddNewDialog("empresa", name)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">País</label>
+                    <Input
+                      value={formulador.pais}
+                      onChange={(e) => handleFormuladorChange(index, "pais", e.target.value)}
+                      placeholder="Ingrese país"
+                    />
                   </div>
                 </div>
-              ))}
-              <Button 
-                variant="outline" 
-                onClick={handleAddCultivo}
-                className="w-full"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Agregar Cultivo
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
 
-      <div className="flex justify-end">
-        <Button type="submit" className="bg-green-700 hover:bg-green-800 text-white">
-          Registrar Producto
-        </Button>
+                <div className="mt-4">
+                  <label className="block text-sm font-medium mb-1">Dirección</label>
+                  <Input
+                    value={formulador.direccion}
+                    onChange={(e) => handleFormuladorChange(index, "direccion", e.target.value)}
+                    placeholder="Ingrese dirección"
+                  />
+                </div>
+              </div>
+            ))}
+
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                onClick={handleAddFormulador}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                <Plus className="h-4 w-4 mr-2" /> Agregar Formulador
+              </Button>
+            </div>
+          </div>
+        )
+
+      case 7:
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="bg-green-600 p-2 rounded-md text-white">
+                <Bookmark size={24} />
+              </div>
+              <h2 className="text-2xl font-semibold">Información de Marca y Registro Comercial</h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium mb-1">Marca Registrada</label>
+                <Input
+                  value={formData.marca?.marcaRegistrada || ""}
+                  onChange={(e) => handleNestedChange("marca", "marcaRegistrada", e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Número de Registro</label>
+                <Input
+                  value={formData.marca?.numeroRegistro || ""}
+                  onChange={(e) => handleNestedChange("marca", "numeroRegistro", e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium mb-1">Clase de Registro de Marca</label>
+                <ComboboxWithAddNew
+                  data={((clasesRegistroMarca || []).map(crm => ({ id: crm.claseRegistroMarcaId, nombre: crm.nombre })))}
+                  value={formData.marca?.claseRegistroMarca || ""}
+                  onChange={(value) => handleNestedChange("marca", "claseRegistroMarca", value.toString())}
+                  placeholder="Selecciona clase de registro"
+                  label="clase de registro"
+                  onAddNew={(name) => handleAddNewItem("claseRegistroMarca", name)}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Tipo de Registro de Marca</label>
+                <ComboboxWithAddNew
+                  data={((tiposRegistroMarca || []).map(trm => ({ id: trm.tipoRegistroMarcaId, nombre: trm.nombre })))}
+                  value={formData.marca?.tipoRegistroMarca || ""}
+                  onChange={(value) => handleNestedChange("marca", "tipoRegistroMarca", value.toString())}
+                  placeholder="Selecciona tipo de registro"
+                  label="tipo de registro"
+                  onAddNew={(name) => handleAddNewItem("tipoRegistroMarca", name)}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium mb-1">Fecha de Registro</label>
+                <Input
+                  type="date"
+                  value={formData.marca?.fechaRegistro || ""}
+                  onChange={(e) => handleNestedChange("marca", "fechaRegistro", e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Vigencia</label>
+                <Input
+                  value={formData.marca?.vigencia || ""}
+                  onChange={(e) => handleNestedChange("marca", "vigencia", e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Logo</label>
+              <div className="flex items-center gap-4">
+                <div
+                  className="border-2 border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload className="h-8 w-8 text-gray-400" />
+                  <p className="text-sm text-gray-500 mt-2">Haga clic para cargar o arrastrar y soltar</p>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                  />
+                </div>
+                {logoPreview && (
+                  <div className="relative">
+                    <img
+                      src={logoPreview || "/placeholder.svg"}
+                      alt="Logo Preview"
+                      className="h-24 w-auto rounded-md"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-500 text-white hover:bg-red-600"
+                      onClick={() => {
+                        setLogoPreview(null)
+                        setLogoFile(null)
+                        setFormData((prev) => ({
+                          ...prev,
+                          marca: {
+                            ...prev.marca!,
+                            logo: "",
+                          },
+                        }))
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )
+
+      case 8:
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="bg-green-600 p-2 rounded-md text-white">
+                <FileCheck size={24} />
+              </div>
+              <h2 className="text-2xl font-semibold">Documentación y Archivos Adjuntos</h2>
+            </div>
+
+            <div
+              className="border-2 border-dashed border-gray-300 rounded-lg p-8 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50"
+              onClick={() => multipleFileInputRef.current?.click()}
+            >
+              <Upload className="h-12 w-12 text-gray-400" />
+              <p className="text-lg text-gray-500 mt-4">Haga clic para cargar o arrastrar y soltar</p>
+              <p className="text-sm text-gray-400 mt-2">Puede seleccionar múltiples archivos</p>
+              <input
+                type="file"
+                ref={multipleFileInputRef}
+                className="hidden"
+                multiple
+                onChange={handleDocumentUpload}
+              />
+            </div>
+
+            {documentos.length > 0 && (
+              <div className="bg-white p-6 rounded-lg border border-gray-200">
+                <h3 className="text-lg font-medium mb-4">Documentos cargados</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {documentos.map((doc) => (
+                    <Card key={doc.id} className="p-4 flex justify-between items-center">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{doc.nombre}</p>
+                        <p className="text-sm text-gray-500">
+                          {doc.tipo} • {doc.tamano}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handlePreviewDocument(doc)}
+                          className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleRemoveDocument(doc.id)}
+                          className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )
+
+      default:
+        return null
+    }
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      {/* Responsive Steps Navigation */}
+      <nav className="block md:hidden w-full bg-white border-b border-gray-200 overflow-x-auto">
+        <div className="flex space-x-2 px-2 py-3">
+          {steps.map((step) => (
+            <button
+              key={step.id}
+              onClick={() => goToStep(step.id)}
+              className={cn(
+                "flex flex-col items-center min-w-[80px] px-2 py-1 rounded-md text-xs transition-colors",
+                currentStep === step.id
+                  ? "bg-green-100 text-green-800 font-semibold border border-green-200"
+                  : "text-gray-600 hover:bg-gray-50 border border-transparent",
+              )}
+            >
+              <span className={cn(
+                "mb-1 flex h-7 w-7 items-center justify-center rounded-full",
+                currentStep === step.id ? "bg-green-600 text-white" : "bg-gray-200 text-gray-500",
+              )}>
+                <step.icon className="h-4 w-4" />
+              </span>
+              {step.title.split(" ")[0]}
+            </button>
+          ))}
+        </div>
+      </nav>
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden items-start">
+        {/* Sidebar Steps - Desktop only */}
+        <aside className="hidden md:block w-72 bg-white border-r border-gray-200 flex-shrink-0 h-[640px] rounded-lg">
+          <div className="p-6">
+            <h2 className="text-xl font-semibold mb-6">Pasos</h2>
+            <nav className="space-y-2">
+              {steps.map((step) => (
+                <button
+                  key={step.id}
+                  onClick={() => goToStep(step.id)}
+                  className={cn(
+                    "flex items-center w-full p-3 rounded-lg text-left transition-colors",
+                    currentStep === step.id
+                      ? "bg-green-100 text-green-800 font-medium border border-green-200"
+                      : "text-gray-600 hover:bg-gray-50 border border-transparent",
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "mr-3 flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
+                      currentStep === step.id ? "bg-green-600 text-white" : "bg-gray-200 text-gray-500",
+                    )}
+                  >
+                    <step.icon className="h-4 w-4" />
+                  </div>
+                  <span className="text-sm leading-tight">{step.title}</span>
+                </button>
+              ))}
+            </nav>
+          </div>
+        </aside>
+        {/* Main Content Area */}
+        <main className="flex-1 flex flex-col">
+          <div className="flex-1 p-2 md:p-6 ">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 md:p-8 w-full mx-auto mt-0 md:pt-6">
+              <form onSubmit={handleSubmit} className="h-full">
+                {renderStepContent()}
+                {/* Botones de navegación al final, subidos y sin scroll extra */}
+                <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-2 mt-8 mb-8">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={prevStep}
+                    disabled={currentStep === 1}
+                    className="w-full md:w-auto px-6 py-2"
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Anterior
+                  </Button>
+                  <div className="flex items-center justify-center text-center w-full md:w-auto">
+                    <span className="text-sm text-gray-500">
+                      Paso {currentStep} de {steps.length}
+                    </span>
+                  </div>
+                  {currentStep < steps.length ? (
+                    <Button
+                      type="button"
+                      onClick={nextStep}
+                      className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
+                    >
+                      Siguiente
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      onClick={handleSubmit}
+                      className="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white px-6 py-2"
+                    >
+                      <Save className="h-4 w-4 mr-2" />
+                      Guardar Registro
+                    </Button>
+                  )}
+                </div>
+              </form>
+            </div>
+          </div>
+        </main>
       </div>
-    </form>
-  );
+
+      {/* Dialogs */}
+      <Dialog open={openPlagasDialog} onOpenChange={setOpenPlagasDialog}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Plagas Registradas</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto">
+            {selectedPlagas.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nombre Común</TableHead>
+                    <TableHead>Nombre Científico</TableHead>
+                    <TableHead>Dosis</TableHead>
+                    <TableHead>LMR</TableHead>
+                    <TableHead>PC (Días)</TableHead>
+                    <TableHead>PR (Horas)</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {selectedPlagas.map((plaga, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{plaga.nombreComun}</TableCell>
+                      <TableCell>{plaga.nombreCientifico}</TableCell>
+                      <TableCell>{plaga.dosis}</TableCell>
+                      <TableCell>{plaga.lmr}</TableCell>
+                      <TableCell>{plaga.pcDias}</TableCell>
+                      <TableCell>{plaga.prHoras}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="text-center py-4 text-gray-500">No hay plagas registradas</div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenPlagasDialog(false)}>
+              Cerrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog for adding new item with additional fields */}
+      <Dialog open={openAddNewDialog} onOpenChange={setOpenAddNewDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Agregar nuevo {newItemType}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Nombre</label>
+              <Input value={newItemName} onChange={(e) => setNewItemName(e.target.value)} />
+            </div>
+
+            {newItemType === "formulacion" && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Código</label>
+                  <Input
+                    value={newItemData.codigo || ""}
+                    onChange={(e) => setNewItemData({ ...newItemData, codigo: e.target.value })}
+                    placeholder="Ej: SC, EC, WP"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Descripción</label>
+                  <Input
+                    value={newItemData.descripcion || ""}
+                    onChange={(e) => setNewItemData({ ...newItemData, descripcion: e.target.value })}
+                    placeholder="Ej: Suspensión Concentrada"
+                  />
+                </div>
+              </>
+            )}
+
+            {newItemType === "bandaTox" && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Color</label>
+                  <Input
+                    value={newItemData.color || ""}
+                    onChange={(e) => setNewItemData({ ...newItemData, color: e.target.value })}
+                    placeholder="Ej: rojo, amarillo, verde"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Descripción</label>
+                  <Input
+                    value={newItemData.descripcion || ""}
+                    onChange={(e) => setNewItemData({ ...newItemData, descripcion: e.target.value })}
+                    placeholder="Ej: Extremadamente peligroso"
+                  />
+                </div>
+              </>
+            )}
+
+            {newItemType === "empresa" && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium mb-1">País</label>
+                  <Input
+                    value={newItemData.pais || ""}
+                    onChange={(e) => setNewItemData({ ...newItemData, pais: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Dirección</label>
+                  <Input
+                    value={newItemData.direccion || ""}
+                    onChange={(e) => setNewItemData({ ...newItemData, direccion: e.target.value })}
+                  />
+                </div>
+              </>
+            )}
+
+            {newItemType === "listaAvance" && (
+              <div>
+                <label className="block text-sm font-medium mb-1">Valor</label>
+                <Input
+                  type="number"
+                  value={newItemData.valor || ""}
+                  onChange={(e) => setNewItemData({ ...newItemData, valor: Number(e.target.value) })}
+                />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenAddNewDialog(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => {
+                handleAddNewItem(newItemType, newItemName, newItemData)
+                setOpenAddNewDialog(false)
+              }}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Document preview dialog */}
+      <Dialog open={!!previewDocument} onOpenChange={() => setPreviewDocument(null)}>
+        <DialogContent className="sm:max-w-[800px] sm:max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Vista previa del documento</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-auto">
+            {previewDocument && <iframe src={previewDocument} className="w-full h-[500px]" title="Document Preview" />}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPreviewDocument(null)}>
+              Cerrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+    </div>
+  )
 }

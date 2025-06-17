@@ -32,7 +32,7 @@ SELECT * FROM GSI_Int_RegistroProducto
 SELECT
     r.RegistroProductoId,
     tp.Nombre AS TipoProducto,
-    p.Nombre AS Producto,
+    r.producto AS Producto,
     ia.Nombre AS IngredienteActivo,
     r.Concentracion,
     r.Porcentaje,
@@ -50,12 +50,12 @@ SELECT
     r.UsuarioCreacion
 FROM GSI_Int_RegistroProducto r
 LEFT JOIN GSI_Int_TipoProducto tp ON r.IdTipoProducto = tp.TipoProductoId
-LEFT JOIN GSI_Int_Producto p ON r.IdProducto = p.ProductoId
 LEFT JOIN GSI_Int_IngredienteActivo ia ON r.IdIngredienteActivo = ia.IngredienteActivoId
 LEFT JOIN GSI_Int_ClaseUso cu ON r.IdClaseUso = cu.ClaseUsoId
 LEFT JOIN GSI_Int_BandaTox bt ON r.IdBandaToxicologica = bt.BandaToxId
-LEFT JOIN GSI_Int_Formulacion f ON f.codigo = r.formulacion;
--- 2. Avance del Registro
+LEFT JOIN GSI_Int_Formulacion f ON f.formulacionid = r.formulacion;
+
+---- 2. Avance del Registro
 SELECT
     ra.RegistroProductoId,
     la.Nombre AS StatusAvance,
@@ -66,26 +66,34 @@ SELECT
     ra.Comentario
 FROM GSI_Int_RegistroAvance ra
 LEFT JOIN GSI_Int_ListaAvance la ON ra.IdListaAvance = la.ListaAvanceId;
--- 3. Certificado
+---- 3. Certificado
 SELECT
     rc.RegistroProductoId,
     rc.NumeroCertificado,
     rc.FechaRegistro,
     rc.FechaActualizacion,
     rc.VigenciaRegistro,
-    ef.Nombre AS Formulador,
-    ef.Pais AS PaisFormulador,
+
+    ef.Nombre  AS Formulador,
+    ef.Pais    AS PaisFormulador,
     ef2.Nombre AS Fabricante,
-    ef2.Pais AS PaisFabricante
+    ef2.Pais   AS PaisFabricante
 FROM GSI_Int_RegistroCertificado rc
-LEFT JOIN GSI_Int_Empresa ef ON rc.IdFormulador = ef.EmpresaId
-LEFT JOIN GSI_Int_Empresa ef2 ON rc.IdFabricante = ef2.EmpresaId;
--- Uso
+LEFT JOIN GSI_Int_RegistroCertificadoFormulador rcf
+            ON rcf.RegistroCertificadoId = rc.RegistroCertificadoId
+LEFT JOIN GSI_Int_Empresa ef
+            ON ef.EmpresaId = rcf.EmpresaId
+LEFT JOIN GSI_Int_RegistroCertificadoFabricante rcfab
+            ON rcfab.RegistroCertificadoId = rc.RegistroCertificadoId
+LEFT JOIN GSI_Int_Empresa ef2
+            ON ef2.EmpresaId = rcfab.EmpresaId;
+
+---- Uso
 SELECT
     ru.RegistroUsoId,
     ru.RegistroProductoId,
     c.Nombre AS Cultivo,
-    p.NombreComun AS PlagaNombreComun,
+    p.Nombre AS PlagaNombreComun,
     p.NombreCientifico AS PlagaNombreCientifico,
     ru.Dosis,
     ru.NumeroResolucion,
@@ -98,7 +106,7 @@ SELECT
 FROM GSI_Int_RegistroUso ru
 LEFT JOIN GSI_Int_Cultivo c ON ru.CultivoId = c.CultivoId
 LEFT JOIN GSI_Int_Plaga p ON ru.PlagaId = p.PlagaId;
--- Fabricantes registrados
+---- Fabricantes registrados
 SELECT
     rf.RegistroProductoId,
     e.Nombre AS NombreEmpresa,
@@ -106,8 +114,7 @@ SELECT
     e.Direccion
 FROM GSI_Int_RegistroFabricante rf
 LEFT JOIN GSI_Int_Empresa e ON rf.EmpresaId = e.EmpresaId
-WHERE rf.RegistroProductoId = 1;
--- Formuladores registrados
+---- Formuladores registrados
 SELECT
     rf.RegistroProductoId,
     e.Nombre AS NombreEmpresa,
@@ -115,8 +122,7 @@ SELECT
     e.Direccion
 FROM GSI_Int_RegistroFormulador rf
 LEFT JOIN GSI_Int_Empresa e ON rf.EmpresaId = e.EmpresaId
-WHERE rf.RegistroProductoId = 1;
--- Marca registrada
+---- Marca registrada
 SELECT
     rm.RegistroMarcaId,
     rm.MarcaRegistrada,
@@ -129,12 +135,10 @@ SELECT
 FROM GSI_Int_RegistroMarca rm
 LEFT JOIN GSI_Int_ClaseRegistroMarca crm ON rm.ClaseRegistroMarcaId = crm.ClaseRegistroMarcaId
 LEFT JOIN GSI_Int_TipoRegistroMarca trm ON rm.TipoRegistroMarcaId = trm.TipoRegistroMarcaId
-WHERE rm.RegistroProductoId = 1;
--- Documentos asociados
+---- Documentos asociados
 SELECT
     d.RegistroMarcaId,
     d.NombreDocumento,
     d.TipoArchivo,
     d.FechaCreacion
 FROM GSI_Int_RegistroMarcaDocumento d
-WHERE d.RegistroMarcaId = 1;

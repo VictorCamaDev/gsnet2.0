@@ -1,0 +1,37 @@
+.swal2-compact-modal {
+  padding: 1.2rem 1.5rem !important;
+  border-radius: 0.75rem !important;
+}
+.swal2-compact-title {
+  font-size: 1.05rem !important;
+  margin-bottom: 0.25rem !important;
+}
+.swal2-compact-text {
+  font-size: 0.93rem !important;
+  margin-bottom: 0.5rem !important;
+}
+.swal2-compact-icon {
+  width: 2.1em !important;
+  height: 2.1em !important;
+  margin-bottom: 0.1em !important;
+}
+.swal2-compact-actions {
+  margin-top: 0.5rem !important;
+}
+.swal2-compact-confirm, .swal2-compact-cancel {
+  font-size: 0.93rem !important;
+  padding: 0.4rem 1.1rem !important;
+  border-radius: 0.5rem !important;
+  margin: 0 0.18rem;
+  box-shadow: none !important;
+}
+.swal2-compact-confirm {
+  background: #dc2626 !important;
+  color: #fff !important;
+  border: none !important;
+}
+.swal2-compact-cancel {
+  background: #f3f4f6 !important;
+  color: #222 !important;
+  border: none !important;
+}
