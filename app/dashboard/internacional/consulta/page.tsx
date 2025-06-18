@@ -318,7 +318,7 @@ export default function ConsultaInternacionalPage() {
                         {producto.avance?.statusAvance || "-"}
                       </span>
                     </td>
-                    <td className="px-4 py-2 text-center text-slate-600">{producto.avance?.valor || "-"}</td>
+                    <td className="px-4 py-2 text-center text-slate-600">{producto.avance?.valor + "%" || "-"}</td>
                     <td className="px-4 py-2 text-center text-slate-600">{producto.certificado?.numeroCertificado || "-"}</td>
                     <td className="px-4 py-2 text-center text-slate-600">
                       {producto.certificado?.fechaRegistro || "-"}

@@ -158,6 +158,13 @@ function ComboboxWithAddNew({
             <CommandList>
               <CommandEmpty>No se encontraron resultados.</CommandEmpty>
               <CommandGroup className="max-h-60 overflow-auto">
+                <CommandItem
+                  onSelect={() => onAddNew(inputValue.trim())}
+                  className="cursor-pointer text-green-600 font-medium flex items-center"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  {inputValue.trim() ? `Agregar "${inputValue.trim()}"` : 'Añadir nuevo'}
+                </CommandItem>
                 {data.map((item) => (
                   <CommandItem
                     key={item.id}
@@ -171,15 +178,6 @@ function ComboboxWithAddNew({
                     {item.nombre}
                   </CommandItem>
                 ))}
-                {showAddNew && (
-                  <CommandItem
-                    onSelect={handleAddNew}
-                    className="cursor-pointer text-green-600 font-medium flex items-center"
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Agregar "{inputValue}"
-                  </CommandItem>
-                )}
               </CommandGroup>
             </CommandList>
           </Command>
@@ -490,7 +488,7 @@ export default function RegistroInternacional() {
         nombre: name,
         ...additionalData,
         estado: true,
-        usuarioCreacion: "usuario_actual", 
+        usuarioCreacion: "usuario_actual",
       }
 
       // Define endpoint based on type
@@ -1022,16 +1020,16 @@ export default function RegistroInternacional() {
       setUsos([])
       setPlagasUso({})
       setCurrentStep(1)
-    setSubmitting(false)
+      setSubmitting(false)
     } catch (error) {
       console.error("Error registering product:", error)
       await Swal.fire({
-    icon: 'error',
-    title: 'Ups... Ocurrió un error',
-    text: 'No se pudo registrar el producto. Intenta nuevamente.',
-    confirmButtonColor: '#dc2626',
-  });
-  setSubmitting(false)
+        icon: 'error',
+        title: 'Ups... Ocurrió un error',
+        text: 'No se pudo registrar el producto. Intenta nuevamente.',
+        confirmButtonColor: '#dc2626',
+      });
+      setSubmitting(false)
     }
   }
 
@@ -1073,7 +1071,7 @@ export default function RegistroInternacional() {
                   onChange={(value) => handleInputChange("tipoProducto", value.toString())}
                   placeholder="Selecciona tipo de producto"
                   label="tipo de producto"
-                  onAddNew={(name) => handleAddNewItem("tipoProducto", name)}
+                  onAddNew={(name) => showAddNewDialog("tipoProducto", name)}
                 />
               </div>
               <div>
@@ -1113,7 +1111,7 @@ export default function RegistroInternacional() {
                   onChange={(value) => handleInputChange("claseUso", value.toString())}
                   placeholder="Selecciona clase de uso"
                   label="clase de uso"
-                  onAddNew={(name) => handleAddNewItem("claseUso", name)}
+                  onAddNew={(name) => showAddNewDialog("claseUso", name)}
                 />
               </div>
               <div>
@@ -1211,7 +1209,7 @@ export default function RegistroInternacional() {
                     }}
                     placeholder="Selecciona ingrediente activo"
                     label="ingrediente activo"
-                    onAddNew={(name) => handleAddNewItem("ingredienteActivo", name)}
+                    onAddNew={(name) => showAddNewDialog("ingredienteActivo", name)}
                   />
                 </div>
                 <div>
@@ -1329,9 +1327,15 @@ export default function RegistroInternacional() {
                 <div>
                   <label className="block text-sm font-medium mb-1">Status Avance</label>
                   <ComboboxWithAddNew
-                    data={((listaAvances || []).map((la) => ({ id: la.listaAvanceId, nombre: la.nombre })))}
+                    data={((listaAvances || []).map((la) => ({ id: la.listaAvanceId, nombre: la.valor + "%" + " - " + la.nombre })))}
                     value={formData.avance?.statusAvance || ""}
-                    onChange={(value) => handleNestedChange("avance", "statusAvance", value.toString())}
+                    onChange={(value) => {
+                      handleNestedChange("avance", "statusAvance", value.toString());
+                      const selected = (listaAvances || []).find(
+                        (item) => item.listaAvanceId?.toString() === value.toString()
+                      );
+                      handleNestedChange("avance", "valor", selected ? selected.valor.toString() : "");
+                    }}
                     placeholder="Selecciona status"
                     label="status de avance"
                     onAddNew={(name) => showAddNewDialog("listaAvance", name)}
@@ -1350,8 +1354,15 @@ export default function RegistroInternacional() {
               <div className="mt-4">
                 <label className="block text-sm font-medium mb-1">Valor</label>
                 <Input
-                  value={formData.avance?.valor || ""}
-                  onChange={(e) => handleNestedChange("avance", "valor", e.target.value)}
+                  value={(() => {
+                    const selected = (listaAvances || []).find(
+                      (item) => item.listaAvanceId?.toString() === formData.avance?.statusAvance?.toString()
+                    );
+                    return selected ? `${selected.valor}%` : '';
+                  })()}
+                  readOnly
+                  tabIndex={-1}
+                  className="bg-gray-100 cursor-not-allowed"
                 />
               </div>
             </div>
@@ -1388,10 +1399,32 @@ export default function RegistroInternacional() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Vigencia de Registro</label>
-                  <Input
-                    value={formData.certificado?.vigenciaRegistro || ""}
-                    onChange={(e) => handleNestedChange("certificado", "vigenciaRegistro", e.target.value)}
-                  />
+                  <div className="flex items-center gap-2">
+                    {formData.certificado?.vigenciaRegistro === "INDEFINIDO" ? (
+                      <Input
+                        type="text"
+                        value="INDEFINIDO"
+                        readOnly
+                        className="bg-gray-100 cursor-not-allowed"
+                      />
+                    ) : (
+                      <Input
+                        type="date"
+                        value={formData.certificado?.vigenciaRegistro || ""}
+                        onChange={(e) => handleNestedChange("certificado", "vigenciaRegistro", e.target.value)}
+                        className=""
+                      />
+                    )}
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={formData.certificado?.vigenciaRegistro === 'INDEFINIDO'}
+                        onChange={(e) => handleNestedChange("certificado", "vigenciaRegistro", e.target.checked ? 'INDEFINIDO' : '')}
+                        className="accent-green-600"
+                      />
+                      Indefinido
+                    </label>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1431,7 +1464,7 @@ export default function RegistroInternacional() {
                     }}
                     placeholder="Selecciona cultivo"
                     label="cultivo"
-                    onAddNew={(name) => handleAddNewItem("cultivo", name)}
+                    onAddNew={(name) => showAddNewDialog("cultivo", name)}
                   />
                 </div>
                 <div className="w-full relative">
@@ -1573,7 +1606,7 @@ export default function RegistroInternacional() {
                           }}
                           placeholder="Selecciona plaga"
                           label="plaga"
-                          onAddNew={(name) => handleAddNewItem("plaga", name)}
+                          onAddNew={(name) => showAddNewDialog("plaga", name)}
                         />
                         <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                           <Search className="h-4 w-4 text-gray-400" />
@@ -1903,7 +1936,7 @@ export default function RegistroInternacional() {
                   onChange={(value) => handleNestedChange("marca", "claseRegistroMarca", value.toString())}
                   placeholder="Selecciona clase de registro"
                   label="clase de registro"
-                  onAddNew={(name) => handleAddNewItem("claseRegistroMarca", name)}
+                  onAddNew={(name) => showAddNewDialog("claseRegistroMarca", name)}
                 />
               </div>
               <div>
@@ -1914,7 +1947,7 @@ export default function RegistroInternacional() {
                   onChange={(value) => handleNestedChange("marca", "tipoRegistroMarca", value.toString())}
                   placeholder="Selecciona tipo de registro"
                   label="tipo de registro"
-                  onAddNew={(name) => handleAddNewItem("tipoRegistroMarca", name)}
+                  onAddNew={(name) => showAddNewDialog("tipoRegistroMarca", name)}
                 />
               </div>
             </div>
@@ -2210,7 +2243,7 @@ export default function RegistroInternacional() {
       <Dialog open={openAddNewDialog} onOpenChange={setOpenAddNewDialog}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Agregar nuevo {newItemType}</DialogTitle>
+            <DialogTitle>Agregar nuevo</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -2234,6 +2267,19 @@ export default function RegistroInternacional() {
                     value={newItemData.descripcion || ""}
                     onChange={(e) => setNewItemData({ ...newItemData, descripcion: e.target.value })}
                     placeholder="Ej: Suspensión Concentrada"
+                  />
+                </div>
+              </>
+            )}
+
+            {newItemType === "plaga" && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Nombre científico</label>
+                  <Input
+                    value={newItemData.nombreCientifico || ""}
+                    onChange={(e) => setNewItemData({ ...newItemData, nombreCientifico: e.target.value })}
+                    placeholder="Ej: Bemisia tabaci"
                   />
                 </div>
               </>
