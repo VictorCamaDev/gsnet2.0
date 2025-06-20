@@ -568,7 +568,7 @@ export default function RegistroInternacional() {
           console.warn("Error parseando selected_company:", e);
         }
       }
-      const response = await apiService.post<{ success: boolean; data: { id: number } }>(endpoint, data, headers);
+      const response = await apiService.post<{ id: number }>(endpoint, data, headers);
 
       if (response.success) {
         const newItem = { id: response.data?.id, nombre: name, ...additionalData };

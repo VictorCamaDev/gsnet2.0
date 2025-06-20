@@ -8,7 +8,7 @@
 import { ApiService } from "./api.service"
 
 export interface IAuthService {
-  loginWithMicrosoft(msToken: string, email: string): Promise<AuthResult>
+  loginWithMicrosoft(msToken: string, email: string): Promise<boolean>
   loginWithCredentials(email: string, password: string): Promise<AuthResult>
   logout(): Promise<void>
   getCurrentUser(): Promise<User | null>
@@ -39,26 +39,20 @@ export class AuthService implements IAuthService {
   /**
    * Login real con Microsoft Azure AD. Recibe el token y el email desde el frontend (MSAL) y los envía al backend.
    */
-  async loginWithMicrosoft(msToken: string, email: string): Promise<AuthResult> {
+  async loginWithMicrosoft(msToken: string, email: string): Promise<boolean> {
     try {
       const response = await this.apiService.post<{ user: User; token: string; error?: string }>(
         '/auth/microsoft',
         { msToken, email }
-      )
-      if (response.data?.user) {
-        sessionStorage.setItem("auth_token", response.data.token)
-        return {
-          success: true,
-          user: response.data.user,
-          token: response.data.token
-        }
+      );
+      if (response.data?.user && response.data?.token) {
+        sessionStorage.setItem("auth_token", response.data.token);
+        sessionStorage.setItem("current_user", JSON.stringify(response.data.user));
+        return true;
       }
-      return { success: false, error: response.data?.error || "Error autenticando con Microsoft" }
+      return false;
     } catch (error) {
-      return {
-        success: false,
-        error: 'Error al conectar con Microsoft'
-      }
+      return false;
     }
   }
 
