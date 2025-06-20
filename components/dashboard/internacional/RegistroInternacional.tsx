@@ -36,6 +36,7 @@ import type { IntProductoRegistradoEntity } from "@/types/registro"
 import { cn } from "@/lib/utils"
 import { ApiService } from "@/services/api.service"
 import Swal from "sweetalert2"
+import { toast } from "react-hot-toast";
 
 // Define interfaces for master data
 interface MasterDataItem {
@@ -191,7 +192,6 @@ export default function RegistroInternacional() {
   const apiService = new ApiService()
   const [submitting, setSubmitting] = useState(false)
 
-  // State for master data
   const [ingredientesActivos, setIngredientesActivos] = useState<MasterDataItem[]>([])
   const [tiposProducto, setTiposProducto] = useState<MasterDataItem[]>([])
   const [clasesUso, setClasesUso] = useState<MasterDataItem[]>([])
@@ -204,7 +204,6 @@ export default function RegistroInternacional() {
   const [empresas, setEmpresas] = useState<MasterDataItem[]>([])
   const [listaAvances, setListaAvances] = useState<MasterDataItem[]>([])
 
-  // State for dialog
   const [openPlagasDialog, setOpenPlagasDialog] = useState(false)
   const [selectedUsoIndex, setSelectedUsoIndex] = useState<number | null>(null)
   const [selectedPlagas, setSelectedPlagas] = useState<Plaga[]>([])
@@ -213,7 +212,6 @@ export default function RegistroInternacional() {
   const [newItemName, setNewItemName] = useState<string>("")
   const [newItemData, setNewItemData] = useState<any>({})
 
-  // State for form data
   const [formData, setFormData] = useState<Partial<IntProductoRegistradoEntity>>({
     tipoProducto: "",
     producto: "",
@@ -257,7 +255,6 @@ export default function RegistroInternacional() {
     usos: [],
   })
 
-  // State for managing arrays
   const [ingredientes, setIngredientes] = useState<IngredienteActivo[]>([])
   const [nuevoIngrediente, setNuevoIngrediente] = useState<IngredienteActivo>({
     nombre: "",
@@ -290,20 +287,16 @@ export default function RegistroInternacional() {
   const [usoSeleccionado, setUsoSeleccionado] = useState<number | null>(null)
   const [plagasUso, setPlagasUso] = useState<Record<number, Plaga[]>>({})
 
-  // State for file uploads
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [documentos, setDocumentos] = useState<DocumentoAdjunto[]>([])
   const [previewDocument, setPreviewDocument] = useState<string | null>(null)
 
-  // Refs
   const fileInputRef = useRef<HTMLInputElement>(null)
   const multipleFileInputRef = useRef<HTMLInputElement>(null)
 
-  // Current step state
   const [currentStep, setCurrentStep] = useState(1)
 
-  // Steps configuration
   const steps = [
     { id: 1, title: "Información General del Producto", icon: ClipboardList },
     { id: 2, title: "Ingredientes Activos y Composición", icon: Leaf },
@@ -315,356 +308,287 @@ export default function RegistroInternacional() {
     { id: 8, title: "Documentación y Archivos Adjuntos", icon: FileCheck },
   ]
 
-  // Fetch master data on component mount
-  useEffect(() => {
-    const fetchMasterData = async () => {
-      try {
-        let headers: any = {};
-        const selectedCompany = sessionStorage.getItem("selected_company");
-        if (selectedCompany) {
-          try {
-            const companyObj = JSON.parse(selectedCompany);
-            if (companyObj?.id) {
-              headers["IdEmpresa"] = companyObj.id;
-            }
-          } catch (e) {
-            console.warn("Error parseando selected_company:", e);
+  // Declarar fetchMasterData en el scope del componente
+  const fetchMasterData = async () => {
+    try {
+      let headers: any = {};
+      const selectedCompany = sessionStorage.getItem("selected_company");
+      if (selectedCompany) {
+        try {
+          const companyObj = JSON.parse(selectedCompany);
+          if (companyObj?.id) {
+            headers["IdEmpresa"] = companyObj.id;
           }
+        } catch (e) {
+          console.warn("Error parseando selected_company:", e);
         }
-
-        const [
-          ingredientesRes,
-          tiposProductoRes,
-          clasesUsoRes,
-          bandasToxRes,
-          formulacionesRes,
-          cultivosRes,
-          plagasRes,
-          tiposRegistroMarcaRes,
-          clasesRegistroMarcaRes,
-          empresasRes,
-          listaAvancesRes,
-        ] = await Promise.all([
-          apiService.get<{ data: MasterDataItem[] }>("/Formulario/ingredientes-activos", headers),
-          apiService.get<{ data: MasterDataItem[] }>("/Formulario/tipos-producto", headers),
-          apiService.get<{ data: MasterDataItem[] }>("/Formulario/clases-uso", headers),
-          apiService.get<{ data: BandaToxItem[] }>("/Formulario/bandas-toxicologicas", headers),
-          apiService.get<{ data: FormulacionItem[] }>("/Formulario/formulaciones", headers),
-          apiService.get<{ data: MasterDataItem[] }>("/Formulario/cultivos", headers),
-          apiService.get<{ data: MasterDataItem[] }>("/Formulario/plagas", headers),
-          apiService.get<{ data: MasterDataItem[] }>("/Formulario/tipos-registro-marca", headers),
-          apiService.get<{ data: MasterDataItem[] }>("/Formulario/clases-registro-marca", headers),
-          apiService.get<{ data: MasterDataItem[] }>("/Formulario/empresas", headers),
-          apiService.get<{ data: MasterDataItem[] }>("/Formulario/lista-avances", headers),
-        ])
-
-        //console.log("tiposProductoRes", tiposProductoRes);
-        // Set master data in state
-        // Set master data in state de forma robusta para cualquier estructura de respuesta
-        // Ingredientes activos
-        if (Array.isArray(ingredientesRes)) {
-          setIngredientesActivos(ingredientesRes)
-        } else if (ingredientesRes?.data && Array.isArray(ingredientesRes.data)) {
-          setIngredientesActivos(ingredientesRes.data)
-        } else if (ingredientesRes?.data?.data && Array.isArray(ingredientesRes.data.data)) {
-          setIngredientesActivos(ingredientesRes.data.data)
-        } else {
-          setIngredientesActivos([])
-        }
-        // Tipos de producto
-        if (Array.isArray(tiposProductoRes)) {
-          setTiposProducto(tiposProductoRes)
-        } else if (tiposProductoRes?.data && Array.isArray(tiposProductoRes.data)) {
-          setTiposProducto(tiposProductoRes.data)
-        } else if (tiposProductoRes?.data?.data && Array.isArray(tiposProductoRes.data.data)) {
-          setTiposProducto(tiposProductoRes.data.data)
-        } else {
-          setTiposProducto([])
-        }
-        // Clases de uso
-        if (Array.isArray(clasesUsoRes)) {
-          setClasesUso(clasesUsoRes)
-        } else if (clasesUsoRes?.data && Array.isArray(clasesUsoRes.data)) {
-          setClasesUso(clasesUsoRes.data)
-        } else if (clasesUsoRes?.data?.data && Array.isArray(clasesUsoRes.data.data)) {
-          setClasesUso(clasesUsoRes.data.data)
-        } else {
-          setClasesUso([])
-        }
-        // Bandas toxicológicas
-        if (Array.isArray(bandasToxRes)) {
-          setBandasTox(bandasToxRes)
-        } else if (bandasToxRes?.data && Array.isArray(bandasToxRes.data)) {
-          setBandasTox(bandasToxRes.data)
-        } else if (bandasToxRes?.data?.data && Array.isArray(bandasToxRes.data.data)) {
-          setBandasTox(bandasToxRes.data.data)
-        } else {
-          setBandasTox([])
-        }
-        // Formulaciones
-        if (Array.isArray(formulacionesRes)) {
-          setFormulaciones(formulacionesRes)
-        } else if (formulacionesRes?.data && Array.isArray(formulacionesRes.data)) {
-          setFormulaciones(formulacionesRes.data)
-        } else if (formulacionesRes?.data?.data && Array.isArray(formulacionesRes.data.data)) {
-          setFormulaciones(formulacionesRes.data.data)
-        } else {
-          setFormulaciones([])
-        }
-        // Cultivos
-        if (Array.isArray(cultivosRes)) {
-          setCultivos(cultivosRes)
-        } else if (cultivosRes?.data && Array.isArray(cultivosRes.data)) {
-          setCultivos(cultivosRes.data)
-        } else if (cultivosRes?.data?.data && Array.isArray(cultivosRes.data.data)) {
-          setCultivos(cultivosRes.data.data)
-        } else {
-          setCultivos([])
-        }
-        // Plagas
-        if (Array.isArray(plagasRes)) {
-          setPlagas(plagasRes)
-        } else if (plagasRes?.data && Array.isArray(plagasRes.data)) {
-          setPlagas(plagasRes.data)
-        } else if (plagasRes?.data?.data && Array.isArray(plagasRes.data.data)) {
-          setPlagas(plagasRes.data.data)
-        } else {
-          setPlagas([])
-        }
-        // Tipos registro marca
-        if (Array.isArray(tiposRegistroMarcaRes)) {
-          setTiposRegistroMarca(tiposRegistroMarcaRes)
-        } else if (tiposRegistroMarcaRes?.data && Array.isArray(tiposRegistroMarcaRes.data)) {
-          setTiposRegistroMarca(tiposRegistroMarcaRes.data)
-        } else if (tiposRegistroMarcaRes?.data?.data && Array.isArray(tiposRegistroMarcaRes.data.data)) {
-          setTiposRegistroMarca(tiposRegistroMarcaRes.data.data)
-        } else {
-          setTiposRegistroMarca([])
-        }
-        // Clases registro marca
-        if (Array.isArray(clasesRegistroMarcaRes)) {
-          setClasesRegistroMarca(clasesRegistroMarcaRes)
-        } else if (clasesRegistroMarcaRes?.data && Array.isArray(clasesRegistroMarcaRes.data)) {
-          setClasesRegistroMarca(clasesRegistroMarcaRes.data)
-        } else if (clasesRegistroMarcaRes?.data?.data && Array.isArray(clasesRegistroMarcaRes.data.data)) {
-          setClasesRegistroMarca(clasesRegistroMarcaRes.data.data)
-        } else {
-          setClasesRegistroMarca([])
-        }
-        // Empresas
-        if (Array.isArray(empresasRes)) {
-          setEmpresas(empresasRes.map(e => ({ ...e, id: e.empresaId ?? e.id })))
-        } else if (empresasRes?.data && Array.isArray(empresasRes.data)) {
-          setEmpresas(empresasRes.data.map(e => ({ ...e, id: e.empresaId ?? e.id })))
-        } else if (empresasRes?.data?.data && Array.isArray(empresasRes.data.data)) {
-          setEmpresas(empresasRes.data.data.map(e => ({ ...e, id: e.empresaId ?? e.id })))
-        } else {
-          setEmpresas([])
-        }
-        // Lista avances
-        if (Array.isArray(listaAvancesRes)) {
-          setListaAvances(listaAvancesRes)
-        } else if (listaAvancesRes?.data && Array.isArray(listaAvancesRes.data)) {
-          setListaAvances(listaAvancesRes.data)
-        } else if (listaAvancesRes?.data?.data && Array.isArray(listaAvancesRes.data.data)) {
-          setListaAvances(listaAvancesRes.data.data)
-        } else {
-          setListaAvances([])
-        }
-
-      } catch (error) {
-        console.error("Error fetching master data:", error)
       }
-    }
 
+      const [
+        ingredientesRes,
+        tiposProductoRes,
+        clasesUsoRes,
+        bandasToxRes,
+        formulacionesRes,
+        cultivosRes,
+        plagasRes,
+        tiposRegistroMarcaRes,
+        clasesRegistroMarcaRes,
+        empresasRes,
+        listaAvancesRes,
+      ] = await Promise.all([
+        apiService.get<{ data: MasterDataItem[] }>("/Formulario/ingredientes-activos", headers),
+        apiService.get<{ data: MasterDataItem[] }>("/Formulario/tipos-producto", headers),
+        apiService.get<{ data: MasterDataItem[] }>("/Formulario/clases-uso", headers),
+        apiService.get<{ data: BandaToxItem[] }>("/Formulario/bandas-toxicologicas", headers),
+        apiService.get<{ data: FormulacionItem[] }>("/Formulario/formulaciones", headers),
+        apiService.get<{ data: MasterDataItem[] }>("/Formulario/cultivos", headers),
+        apiService.get<{ data: MasterDataItem[] }>("/Formulario/plagas", headers),
+        apiService.get<{ data: MasterDataItem[] }>("/Formulario/tipos-registro-marca", headers),
+        apiService.get<{ data: MasterDataItem[] }>("/Formulario/clases-registro-marca", headers),
+        apiService.get<{ data: MasterDataItem[] }>("/Formulario/empresas", headers),
+        apiService.get<{ data: MasterDataItem[] }>("/Formulario/lista-avances", headers),
+      ])
+
+      if (Array.isArray(ingredientesRes)) {
+        setIngredientesActivos(ingredientesRes)
+      } else if (ingredientesRes?.data && Array.isArray(ingredientesRes.data)) {
+        setIngredientesActivos(ingredientesRes.data)
+      } else if (ingredientesRes?.data?.data && Array.isArray(ingredientesRes.data.data)) {
+        setIngredientesActivos(ingredientesRes.data.data)
+      } else {
+        setIngredientesActivos([])
+      }
+
+      type ComboBoxItem = { value: number | string; label: string }
+
+      function toComboBoxItemArray(arr: any[], valueKey: string, labelKey: string): ComboBoxItem[] {
+        return Array.isArray(arr)
+          ? arr.map(item => ({
+            value: item[valueKey],
+            label: item[labelKey],
+          }))
+          : []
+      }
+
+      // Empresas (ComboBox)
+      let empresasList: ComboBoxItem[] = []
+      if (Array.isArray(empresasRes)) {
+        empresasList = toComboBoxItemArray(empresasRes, "empresaId", "nombre")
+      } else if (empresasRes?.data && Array.isArray(empresasRes.data)) {
+        empresasList = toComboBoxItemArray(empresasRes.data, "empresaId", "nombre")
+      } else if (empresasRes?.data?.data && Array.isArray(empresasRes.data.data)) {
+        empresasList = toComboBoxItemArray(empresasRes.data.data, "empresaId", "nombre")
+      } else {
+        empresasList = []
+      }
+      setEmpresas(empresasList as any)
+      // Tipos de producto
+      if (Array.isArray(tiposProductoRes)) {
+        setTiposProducto(tiposProductoRes)
+      } else if (tiposProductoRes?.data && Array.isArray(tiposProductoRes.data)) {
+        setTiposProducto(tiposProductoRes.data)
+      } else if (tiposProductoRes?.data?.data && Array.isArray(tiposProductoRes.data.data)) {
+        setTiposProducto(tiposProductoRes.data.data)
+      } else {
+        setTiposProducto([])
+      }
+      // Clases de uso
+      if (Array.isArray(clasesUsoRes)) {
+        setClasesUso(clasesUsoRes)
+      } else if (clasesUsoRes?.data && Array.isArray(clasesUsoRes.data)) {
+        setClasesUso(clasesUsoRes.data)
+      } else if (clasesUsoRes?.data?.data && Array.isArray(clasesUsoRes.data.data)) {
+        setClasesUso(clasesUsoRes.data.data)
+      } else {
+        setClasesUso([])
+      }
+      // Bandas toxicológicas
+      if (Array.isArray(bandasToxRes)) {
+        setBandasTox(bandasToxRes)
+      } else if (bandasToxRes?.data && Array.isArray(bandasToxRes.data)) {
+        setBandasTox(bandasToxRes.data)
+      } else if (bandasToxRes?.data?.data && Array.isArray(bandasToxRes.data.data)) {
+        setBandasTox(bandasToxRes.data.data)
+      } else {
+        setBandasTox([])
+      }
+      // Formulaciones
+      if (Array.isArray(formulacionesRes)) {
+        setFormulaciones(formulacionesRes)
+      } else if (formulacionesRes?.data && Array.isArray(formulacionesRes.data)) {
+        setFormulaciones(formulacionesRes.data)
+      } else if (formulacionesRes?.data?.data && Array.isArray(formulacionesRes.data.data)) {
+        setFormulaciones(formulacionesRes.data.data)
+      } else {
+        setFormulaciones([])
+      }
+      // Cultivos
+      if (Array.isArray(cultivosRes)) {
+        setCultivos(cultivosRes)
+      } else if (cultivosRes?.data && Array.isArray(cultivosRes.data)) {
+        setCultivos(cultivosRes.data)
+      } else if (cultivosRes?.data?.data && Array.isArray(cultivosRes.data.data)) {
+        setCultivos(cultivosRes.data.data)
+      } else {
+        setCultivos([])
+      }
+      // Plagas
+      if (Array.isArray(plagasRes)) {
+        setPlagas(plagasRes)
+      } else if (plagasRes?.data && Array.isArray(plagasRes.data)) {
+        setPlagas(plagasRes.data)
+      } else if (plagasRes?.data?.data && Array.isArray(plagasRes.data.data)) {
+        setPlagas(plagasRes.data.data)
+      } else {
+        setPlagas([])
+      }
+      // Tipos registro marca
+      if (Array.isArray(tiposRegistroMarcaRes)) {
+        setTiposRegistroMarca(tiposRegistroMarcaRes)
+      } else if (tiposRegistroMarcaRes?.data && Array.isArray(tiposRegistroMarcaRes.data)) {
+        setTiposRegistroMarca(tiposRegistroMarcaRes.data)
+      } else if (tiposRegistroMarcaRes?.data?.data && Array.isArray(tiposRegistroMarcaRes.data.data)) {
+        setTiposRegistroMarca(tiposRegistroMarcaRes.data.data)
+      } else {
+        setTiposRegistroMarca([])
+      }
+      // Clases registro marca
+      if (Array.isArray(clasesRegistroMarcaRes)) {
+        setClasesRegistroMarca(clasesRegistroMarcaRes)
+      } else if (clasesRegistroMarcaRes?.data && Array.isArray(clasesRegistroMarcaRes.data)) {
+        setClasesRegistroMarca(clasesRegistroMarcaRes.data)
+      } else if (clasesRegistroMarcaRes?.data?.data && Array.isArray(clasesRegistroMarcaRes.data.data)) {
+        setClasesRegistroMarca(clasesRegistroMarcaRes.data.data)
+      } else {
+        setClasesRegistroMarca([])
+      }
+      // Empresas
+      if (Array.isArray(empresasRes)) {
+        setEmpresas(empresasRes.map(e => ({ ...e, id: (e.empresaId ?? e.id)?.toString() })))
+      } else if (empresasRes?.data && Array.isArray(empresasRes.data)) {
+        setEmpresas(empresasRes.data.map(e => ({ ...e, id: (e.empresaId ?? e.id)?.toString() })))
+      } else if (empresasRes?.data?.data && Array.isArray(empresasRes.data.data)) {
+        setEmpresas(empresasRes.data.data.map(e => ({ ...e, id: (e.empresaId ?? e.id)?.toString() })))
+      } else {
+        setEmpresas([])
+      }
+      // Lista avances
+      if (Array.isArray(listaAvancesRes)) {
+        setListaAvances(listaAvancesRes)
+      } else if (listaAvancesRes?.data && Array.isArray(listaAvancesRes.data)) {
+        setListaAvances(listaAvancesRes.data)
+      } else if (listaAvancesRes?.data?.data && Array.isArray(listaAvancesRes.data.data)) {
+        setListaAvances(listaAvancesRes.data.data)
+      } else {
+        setListaAvances([])
+      }
+
+    } catch (error) {
+      console.error("Error fetching master data:", error)
+    }
+  }
+
+  // Llamar fetchMasterData al montar el componente
+  useEffect(() => {
     fetchMasterData()
   }, [])
 
   // Handle adding new master data item
   const handleAddNewItem = async (type: string, name: string, additionalData: any = {}) => {
     try {
-      // Prepare data for API
+      // Prepara los datos para el API
       const data = {
         nombre: name,
         ...additionalData,
         estado: true,
-        usuarioCreacion: "usuario_actual",
-      }
+        usuarioCreacion: (() => {
+          try {
+            const user = JSON.parse(sessionStorage.getItem("current_user") || "null");
+            if (user && user.codigoUsuario && user.loginUsuario) {
+              return `${user.codigoUsuario}-${user.loginUsuario}`;
+            }
+            return "desconocido";
+          } catch {
+            return "desconocido";
+          }
+        })(),
+      };
 
-      // Define endpoint based on type
-      let endpoint = ""
+      // Define endpoint según el tipo
+      let endpoint = "";
       switch (type) {
         case "ingredienteActivo":
-          endpoint = "/maestras/ingredientes-activos"
-          break
+          endpoint = "/RegistroInternacional/maestras/ingredientes-activos";
+          break;
         case "tipoProducto":
-          endpoint = "/maestras/tipos-producto"
-          break
+          endpoint = "/RegistroInternacional/maestras/tipos-producto";
+          break;
         case "claseUso":
-          endpoint = "/maestras/clases-uso"
-          break
+          endpoint = "/RegistroInternacional/maestras/clases-uso";
+          break;
         case "bandaTox":
-          endpoint = "/maestras/bandas-toxicologicas"
-          break
+          endpoint = "/RegistroInternacional/maestras/bandas-toxicologicas";
+          break;
         case "formulacion":
-          endpoint = "/maestras/formulaciones"
-          break
+          endpoint = "/RegistroInternacional/maestras/formulaciones";
+          break;
         case "cultivo":
-          endpoint = "/maestras/cultivos"
-          break
+          endpoint = "/RegistroInternacional/maestras/cultivos";
+          break;
         case "plaga":
-          endpoint = "/maestras/plagas"
-          break
+          endpoint = "/RegistroInternacional/maestras/plagas";
+          break;
         case "tipoRegistroMarca":
-          endpoint = "/maestras/tipos-registro-marca"
-          break
+          endpoint = "/RegistroInternacional/maestras/tipos-registro-marca";
+          break;
         case "claseRegistroMarca":
-          endpoint = "/maestras/clases-registro-marca"
-          break
+          endpoint = "/RegistroInternacional/maestras/clases-registro-marca";
+          break;
         case "empresa":
-          endpoint = "/maestras/empresas"
-          break
+          endpoint = "/RegistroInternacional/maestras/empresas";
+          break;
         case "listaAvance":
-          endpoint = "/maestras/lista-avances"
-          break
+          endpoint = "/RegistroInternacional/maestras/lista-avances";
+          break;
         default:
-          console.error("Unknown master data type:", type)
-          return
+          console.error("Unknown master data type:", type);
+          return null;
       }
 
-      const response = await apiService.post<{ data: { id: number } }>(endpoint, data)
-
-      if (response.success && response.data) {
-        // Add new item to corresponding state
-        const newItem = { id: response.data.data.id, nombre: name, ...additionalData }
-
-        switch (type) {
-          case "ingredienteActivo":
-            setIngredientesActivos((prev) => [...prev, newItem])
-            break
-          case "tipoProducto":
-            setTiposProducto((prev) => [...prev, newItem])
-            break
-          case "claseUso":
-            setClasesUso((prev) => [...prev, newItem])
-            break
-          case "bandaTox":
-            setBandasTox((prev) => [...prev, newItem as BandaToxItem])
-            break
-          case "formulacion":
-            setFormulaciones((prev) => [...prev, newItem as FormulacionItem])
-            break
-          case "cultivo":
-            setCultivos((prev) => [...prev, newItem])
-            break
-          case "plaga":
-            setPlagas((prev) => [...prev, newItem])
-            break
-          case "tipoRegistroMarca":
-            setTiposRegistroMarca((prev) => [...prev, newItem])
-            break
-          case "claseRegistroMarca":
-            setClasesRegistroMarca((prev) => [...prev, newItem])
-            break
-          case "empresa":
-            setEmpresas((prev) => [...prev, newItem])
-            break
-          case "listaAvance":
-            setListaAvances((prev) => [...prev, newItem])
-            break
-        }
-
-        if (!newItem.id) {
-          const mockId = Math.floor(Math.random() * 1000) + 100
-          newItem.id = mockId
-
-          switch (newItemType) {
-            case "ingredienteActivo":
-              setIngredientesActivos((prev) => [...prev, { ...newItem, id: mockId }])
-              break
-            case "tipoProducto":
-              setTiposProducto((prev) => [...prev, { ...newItem, id: mockId }])
-              break
-            case "claseUso":
-              setClasesUso((prev) => [...prev, { ...newItem, id: mockId }])
-              break
-            case "bandaTox":
-              setBandasTox((prev) => [...prev, { ...newItem, id: mockId } as BandaToxItem])
-              break
-            case "formulacion":
-              setFormulaciones((prev) => [...prev, { ...newItem, id: mockId } as FormulacionItem])
-              break
-            case "cultivo":
-              setCultivos((prev) => [...prev, { ...newItem, id: mockId }])
-              break
-            case "plaga":
-              setPlagas((prev) => [...prev, { ...newItem, id: mockId }])
-              break
-            case "tipoRegistroMarca":
-              setTiposRegistroMarca((prev) => [...prev, { ...newItem, id: mockId }])
-              break
-            case "claseRegistroMarca":
-              setClasesRegistroMarca((prev) => [...prev, { ...newItem, id: mockId }])
-              break
-            case "empresa":
-              setEmpresas((prev) => [...prev, { ...newItem, id: mockId }])
-              break
-            case "listaAvance":
-              setListaAvances((prev) => [...prev, { ...newItem, id: mockId }])
-              break
+      const headers: any = {};
+      const selectedCompany = sessionStorage.getItem("selected_company");
+      if (selectedCompany) {
+        try {
+          const companyObj = JSON.parse(selectedCompany);
+          if (companyObj?.id) {
+            headers["IdEmpresa"] = companyObj.id;
           }
+        } catch (e) {
+          console.warn("Error parseando selected_company:", e);
         }
+      }
+      const response = await apiService.post<{ success: boolean; data: { id: number } }>(endpoint, data, headers);
 
-        return newItem
+      if (response.success) {
+        const newItem = { id: response.data?.id, nombre: name, ...additionalData };
+
+        if (typeof fetchMasterData === 'function') {
+          await fetchMasterData();
+        }
+        toast.success("¡Agregado exitosamente!");
+        return newItem;
       } else {
-        console.error("Error adding new item:", response.error)
-        return null
+        console.error("Error adding new item:", response.error);
+        toast.error("No se pudo agregar el elemento. Intenta nuevamente.");
+        return null;
       }
     } catch (error) {
-      console.error("Error adding new item:", error)
-
-      const mockId = Math.floor(Math.random() * 1000) + 100
-      const newItem = { id: mockId, nombre: name, ...additionalData }
-
-      switch (type) {
-        case "ingredienteActivo":
-          setIngredientesActivos((prev) => [...prev, newItem])
-          break
-        case "tipoProducto":
-          setTiposProducto((prev) => [...prev, newItem])
-          break
-        case "claseUso":
-          setClasesUso((prev) => [...prev, newItem])
-          break
-        case "bandaTox":
-          setBandasTox((prev) => [...prev, newItem as BandaToxItem])
-          break
-        case "formulacion":
-          setFormulaciones((prev) => [...prev, newItem as FormulacionItem])
-          break
-        case "cultivo":
-          setCultivos((prev) => [...prev, newItem])
-          break
-        case "plaga":
-          setPlagas((prev) => [...prev, newItem])
-          break
-        case "tipoRegistroMarca":
-          setTiposRegistroMarca((prev) => [...prev, newItem])
-          break
-        case "claseRegistroMarca":
-          setClasesRegistroMarca((prev) => [...prev, newItem])
-          break
-        case "empresa":
-          setEmpresas((prev) => [...prev, newItem])
-          break
-        case "listaAvance":
-          setListaAvances((prev) => [...prev, newItem])
-          break
-      }
-
-      return newItem
+      console.error("Error adding new item:", error);
+      toast.error("Error de red o servidor. No se pudo agregar el elemento.");
+      return null;
     }
-  }
+  };
 
   const showAddNewDialog = (type: string, name: string) => {
     setNewItemType(type)
@@ -799,10 +723,14 @@ export default function RegistroInternacional() {
     }
   }
 
-  const handleFabricanteChange = (index: number, field: string, value: string) => {
-    const updatedFabricantes = [...fabricantes]
-    updatedFabricantes[index] = { ...updatedFabricantes[index], [field]: value }
-    setFabricantes(updatedFabricantes)
+  const handleFabricanteChange = (index: number, field: string | null, value: any) => {
+    const updatedFabricantes = [...fabricantes];
+    if (field === null && typeof value === 'object') {
+      updatedFabricantes[index] = { ...updatedFabricantes[index], ...value };
+    } else {
+      updatedFabricantes[index] = { ...updatedFabricantes[index], [field as string]: value };
+    }
+    setFabricantes(updatedFabricantes);
   }
 
   // Add/remove formuladores
@@ -816,10 +744,14 @@ export default function RegistroInternacional() {
     }
   }
 
-  const handleFormuladorChange = (index: number, field: string, value: string) => {
-    const updatedFormuladores = [...formuladores]
-    updatedFormuladores[index] = { ...updatedFormuladores[index], [field]: value }
-    setFormuladores(updatedFormuladores)
+  const handleFormuladorChange = (index: number, field: string | null, value: any) => {
+    const updatedFormuladores = [...formuladores];
+    if (field === null && typeof value === 'object') {
+      updatedFormuladores[index] = { ...updatedFormuladores[index], ...value };
+    } else {
+      updatedFormuladores[index] = { ...updatedFormuladores[index], [field as string]: value };
+    }
+    setFormuladores(updatedFormuladores);
   }
 
   // Handle logo upload
@@ -1449,18 +1381,14 @@ export default function RegistroInternacional() {
                   <label className="block text-sm font-medium mb-1">Nombre del Cultivo</label>
                   <ComboboxWithAddNew
                     data={((cultivos || []).map(c => ({ id: c.cultivoId, nombre: c.nombre })))}
-                    value={nuevoUso.cultivoId || nuevoUso.cultivoNombre}
-                    onChange={(value) => {
-                      if (typeof value === "string") {
-                        handleUsoInputChange("cultivoNombre", value)
-                        handleUsoInputChange("cultivoId", undefined as any)
-                      } else {
-                        const cultivo = cultivos.find((c) => c.cultivoId === value)
-                        if (cultivo) {
-                          handleUsoInputChange("cultivoNombre", cultivo.nombre)
-                          handleUsoInputChange("cultivoId", cultivo.cultivoId)
-                        }
-                      }
+                    value={nuevoUso.cultivoId}
+                    onChange={(selectedId) => {
+                      const cultivo = cultivos.find(c => c.cultivoId === Number(selectedId));
+                      setNuevoUso((prev) => ({
+                        ...prev,
+                        cultivoId: Number(selectedId),
+                        cultivoNombre: cultivo ? cultivo.nombre : "",
+                      }));
                     }}
                     placeholder="Selecciona cultivo"
                     label="cultivo"
@@ -1592,16 +1520,24 @@ export default function RegistroInternacional() {
                       <label className="block text-sm font-medium mb-1">Nombre Común</label>
                       <div className="relative">
                         <ComboboxWithAddNew
-                          data={((plagas || []).map(p => ({ id: p.plagaId, nombre: p.nombre })))}
+                          data={((plagas || []).map(p => ({ id: p.plagaId, nombre: p.nombre + " - " + p.nombreCientifico })))}
                           value={nuevaPlaga.nombreComun}
                           onChange={(value) => {
-                            if (typeof value === "string") {
-                              handlePlagaInputChange("nombreComun", value)
+                            const stringValue = value.toString();
+                            // Busca la plaga por plagaId o id (según cómo venga en el array)
+                            const plaga = plagas.find((e) => (e.plagaId ?? e.id)?.toString() === stringValue);
+                            if (plaga) {
+                              setNuevaPlaga((prev) => ({
+                                ...prev,
+                                nombreComun: stringValue,
+                                nombreCientifico: plaga.nombreCientifico ?? "",
+                              }));
                             } else {
-                              const plaga = plagas.find((p) => p.id === value)
-                              if (plaga) {
-                                handlePlagaInputChange("nombreComun", plaga.nombre)
-                              }
+                              setNuevaPlaga((prev) => ({
+                                ...prev,
+                                nombreComun: stringValue,
+                                nombreCientifico: "",
+                              }));
                             }
                           }}
                           placeholder="Selecciona plaga"
@@ -1760,17 +1696,30 @@ export default function RegistroInternacional() {
                       <div className="relative">
                         <ComboboxWithAddNew
                           data={empresas}
-                          value={fabricante.nombre}
+                          value={fabricante.id ? fabricante.id.toString() : ""}
                           onChange={(value) => {
-                            if (typeof value === "string") {
-                              handleFabricanteChange(index, "nombre", value)
+                            const stringValue = value.toString();
+                            const empresa = empresas.find((e) => e.id.toString() === stringValue);
+                            if (empresa) {
+                              handleFabricanteChange(index, null, {
+                                id: stringValue,
+                                nombre: stringValue,
+                                pais: empresa.pais || "",
+                                direccion: empresa.direccion || ""
+                              });
+                              setTimeout(() => {
+                                console.log('Fabricante actualizado:', fabricantes[index]);
+                              }, 200);
                             } else {
-                              const empresa = empresas.find((e) => e.id === value)
-                              if (empresa) {
-                                handleFabricanteChange(index, "nombre", empresa.nombre)
-                                if (empresa.pais) handleFabricanteChange(index, "pais", empresa.pais)
-                                if (empresa.direccion) handleFabricanteChange(index, "direccion", empresa.direccion)
-                              }
+                              handleFabricanteChange(index, null, {
+                                id: "",
+                                nombre: stringValue,
+                                pais: "",
+                                direccion: ""
+                              });
+                              setTimeout(() => {
+                                console.log('Fabricante actualizado:', fabricantes[index]);
+                              }, 200);
                             }
                           }}
                           placeholder="Selecciona empresa"
@@ -1785,22 +1734,21 @@ export default function RegistroInternacional() {
                     <div>
                       <label className="block text-sm font-medium mb-1">País</label>
                       <Input
-                        value={fabricante.pais}
-                        onChange={(e) => handleFabricanteChange(index, "pais", e.target.value)}
-                        placeholder="Ingrese país"
-                        className="w-full"
+                        value={fabricante.pais || ""}
+                        readOnly
+                        className="bg-gray-100 cursor-not-allowed"
+                        placeholder="País"
                       />
                     </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Dirección</label>
-                    <Input
-                      value={fabricante.direccion}
-                      onChange={(e) => handleFabricanteChange(index, "direccion", e.target.value)}
-                      placeholder="Ingrese dirección"
-                      className="w-full"
-                    />
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Dirección</label>
+                      <Input
+                        value={fabricante.direccion || ""}
+                        readOnly
+                        className="bg-gray-100 cursor-not-allowed"
+                        placeholder="Dirección"
+                      />
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -1829,63 +1777,84 @@ export default function RegistroInternacional() {
             </div>
 
             {formuladores.map((formulador, index) => (
-              <div key={index} className="bg-white p-6 rounded-lg border border-gray-200">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-medium">Formulador {index + 1}</h3>
+              <Card key={index}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <h3 className="text-lg font-semibold">Fabricante {index + 1}</h3>
                   {formuladores.length > 1 && (
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={() => handleRemoveFormulador(index)}
-                      className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                      type="button"
+                      className="h-8 w-8 hover:bg-gray-100"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   )}
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Nombre</label>
-                    <ComboboxWithAddNew
-                      data={empresas}
-                      value={formulador.nombre}
-                      onChange={(value) => {
-                        if (typeof value === "string") {
-                          handleFormuladorChange(index, "nombre", value)
-                        } else {
-                          const empresa = empresas.find((e) => e.id === value)
-                          if (empresa) {
-                            handleFormuladorChange(index, "nombre", empresa.nombre)
-                            if (empresa.pais) handleFormuladorChange(index, "pais", empresa.pais)
-                            if (empresa.direccion) handleFormuladorChange(index, "direccion", empresa.direccion)
-                          }
-                        }
-                      }}
-                      placeholder="Selecciona empresa"
-                      label="empresa"
-                      onAddNew={(name) => showAddNewDialog("empresa", name)}
-                    />
+                </CardHeader>
+                <CardContent className="pt-4 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Nombre</label>
+                      <div className="relative">
+                        <ComboboxWithAddNew
+                          data={empresas}
+                          value={formulador.id ? formulador.id.toString() : ""}
+                          onChange={(value) => {
+                            const stringValue = value.toString();
+                            const empresa = empresas.find((e) => e.id.toString() === stringValue);
+                            if (empresa) {
+                              handleFormuladorChange(index, null, {
+                                id: stringValue,
+                                nombre: stringValue,
+                                pais: empresa.pais || "",
+                                direccion: empresa.direccion || ""
+                              });
+                              setTimeout(() => {
+                                console.log('Formulador actualizado:', formuladores[index]);
+                              }, 200);
+                            } else {
+                              handleFormuladorChange(index, null, {
+                                id: "",
+                                nombre: stringValue,
+                                pais: "",
+                                direccion: ""
+                              });
+                              setTimeout(() => {
+                                console.log('Formulador actualizado:', formuladores[index]);
+                              }, 200);
+                            }
+                          }}
+                          placeholder="Selecciona empresa"
+                          label="empresa"
+                          onAddNew={(name) => showAddNewDialog("empresa", name)}
+                        />
+                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                          <Search className="h-4 w-4 text-gray-400" />
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">País</label>
+                      <Input
+                        value={formulador.pais || ""}
+                        readOnly
+                        className="bg-gray-100 cursor-not-allowed"
+                        placeholder="País"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Dirección</label>
+                      <Input
+                        value={formulador.direccion || ""}
+                        readOnly
+                        className="bg-gray-100 cursor-not-allowed"
+                        placeholder="Dirección"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">País</label>
-                    <Input
-                      value={formulador.pais}
-                      onChange={(e) => handleFormuladorChange(index, "pais", e.target.value)}
-                      placeholder="Ingrese país"
-                    />
-                  </div>
-                </div>
-
-                <div className="mt-4">
-                  <label className="block text-sm font-medium mb-1">Dirección</label>
-                  <Input
-                    value={formulador.direccion}
-                    onChange={(e) => handleFormuladorChange(index, "direccion", e.target.value)}
-                    placeholder="Ingrese dirección"
-                  />
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             ))}
 
             <div className="flex justify-end">
@@ -2240,136 +2209,166 @@ export default function RegistroInternacional() {
       </Dialog>
 
       {/* Dialog for adding new item with additional fields */}
-      <Dialog open={openAddNewDialog} onOpenChange={setOpenAddNewDialog}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Agregar nuevo</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Nombre</label>
-              <Input value={newItemName} onChange={(e) => setNewItemName(e.target.value)} />
-            </div>
-
-            {newItemType === "formulacion" && (
-              <>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Código</label>
-                  <Input
-                    value={newItemData.codigo || ""}
-                    onChange={(e) => setNewItemData({ ...newItemData, codigo: e.target.value })}
-                    placeholder="Ej: SC, EC, WP"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Descripción</label>
-                  <Input
-                    value={newItemData.descripcion || ""}
-                    onChange={(e) => setNewItemData({ ...newItemData, descripcion: e.target.value })}
-                    placeholder="Ej: Suspensión Concentrada"
-                  />
-                </div>
-              </>
-            )}
-
-            {newItemType === "plaga" && (
-              <>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Nombre científico</label>
-                  <Input
-                    value={newItemData.nombreCientifico || ""}
-                    onChange={(e) => setNewItemData({ ...newItemData, nombreCientifico: e.target.value })}
-                    placeholder="Ej: Bemisia tabaci"
-                  />
-                </div>
-              </>
-            )}
-
-            {newItemType === "bandaTox" && (
-              <>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Color</label>
-                  <Input
-                    value={newItemData.color || ""}
-                    onChange={(e) => setNewItemData({ ...newItemData, color: e.target.value })}
-                    placeholder="Ej: rojo, amarillo, verde"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Descripción</label>
-                  <Input
-                    value={newItemData.descripcion || ""}
-                    onChange={(e) => setNewItemData({ ...newItemData, descripcion: e.target.value })}
-                    placeholder="Ej: Extremadamente peligroso"
-                  />
-                </div>
-              </>
-            )}
-
-            {newItemType === "empresa" && (
-              <>
-                <div>
-                  <label className="block text-sm font-medium mb-1">País</label>
-                  <Input
-                    value={newItemData.pais || ""}
-                    onChange={(e) => setNewItemData({ ...newItemData, pais: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Dirección</label>
-                  <Input
-                    value={newItemData.direccion || ""}
-                    onChange={(e) => setNewItemData({ ...newItemData, direccion: e.target.value })}
-                  />
-                </div>
-              </>
-            )}
-
-            {newItemType === "listaAvance" && (
-              <div>
-                <label className="block text-sm font-medium mb-1">Valor</label>
-                <Input
-                  type="number"
-                  value={newItemData.valor || ""}
-                  onChange={(e) => setNewItemData({ ...newItemData, valor: Number(e.target.value) })}
-                />
+      {openAddNewDialog && (
+        <Dialog open={openAddNewDialog} onOpenChange={setOpenAddNewDialog}>
+          <DialogContent
+            className="rounded-2xl shadow-2xl bg-gradient-to-br from-green-50 via-white to-gray-100 border-0 p-0 animate-fade-in"
+            style={{ minWidth: 380, maxWidth: 440 }}
+          >
+            <div className="px-8 pt-8 pb-2 flex flex-col items-center w-full">
+              {/* Icono grande y colorido según tipo */}
+              <div className="mb-2">
+                {(() => {
+                  switch (newItemType) {
+                    case "bandaTox":
+                      return <span className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-pink-500 to-yellow-400 shadow-lg"><span className="text-3xl">🧪</span></span>;
+                    case "formulacion":
+                      return <span className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-green-400 shadow-lg"><span className="text-3xl">⚗️</span></span>;
+                    case "empresa":
+                      return <span className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-orange-400 to-yellow-300 shadow-lg"><span className="text-3xl">🏢</span></span>;
+                    case "plaga":
+                      return <span className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-red-500 to-pink-400 shadow-lg"><span className="text-3xl">🐛</span></span>;
+                    case "listaAvance":
+                      return <span className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-green-500 to-blue-400 shadow-lg"><span className="text-3xl">📈</span></span>;
+                    default:
+                      return <span className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-gray-400 to-gray-200 shadow-lg"><span className="text-3xl">➕</span></span>;
+                  }
+                })()}
               </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpenAddNewDialog(false)}>
-              Cancelar
-            </Button>
-            <Button
-              onClick={() => {
-                handleAddNewItem(newItemType, newItemName, newItemData)
-                setOpenAddNewDialog(false)
-              }}
-              className="bg-green-600 hover:bg-green-700 text-white"
-            >
-              Guardar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Document preview dialog */}
-      <Dialog open={!!previewDocument} onOpenChange={() => setPreviewDocument(null)}>
-        <DialogContent className="sm:max-w-[800px] sm:max-h-[80vh]">
-          <DialogHeader>
-            <DialogTitle>Vista previa del documento</DialogTitle>
-          </DialogHeader>
-          <div className="max-h-[60vh] overflow-auto">
-            {previewDocument && <iframe src={previewDocument} className="w-full h-[500px]" title="Document Preview" />}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setPreviewDocument(null)}>
-              Cerrar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
+              <DialogHeader className="w-full items-center">
+                <DialogTitle className="text-center text-2xl font-bold tracking-tight text-gray-800 mb-1">
+                  Agregar nuevo {newItemType}
+                </DialogTitle>
+                <span className="text-gray-500 text-sm font-normal text-center block mb-2">
+                  Completa los campos requeridos para crear un nuevo registro.
+                </span>
+              </DialogHeader>
+              <div className="w-full flex flex-col gap-4 mt-2 mb-1">
+                {/* Campo nombre (siempre requerido) */}
+                <Input
+                  placeholder="Nombre"
+                  value={newItemName}
+                  onChange={(e) => setNewItemName(e.target.value)}
+                  className="rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-400 focus:border-green-500 transition-all shadow-sm bg-white"
+                />
+                {/* Campos dinámicos según tipo */}
+                {(() => {
+                  switch (newItemType) {
+                    case "bandaTox":
+                      return (
+                        <>
+                          <Input
+                            placeholder="Color"
+                            value={newItemData.color || ""}
+                            onChange={(e) =>
+                              setNewItemData({ ...newItemData, color: e.target.value })
+                            }
+                            className="rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-300 focus:border-pink-400 transition-all shadow-sm bg-white"
+                          />
+                        </>
+                      );
+                    case "formulacion":
+                      return (
+                        <>
+                          <Input
+                            placeholder="Código"
+                            value={newItemData.codigo || ""}
+                            onChange={(e) =>
+                              setNewItemData({ ...newItemData, codigo: e.target.value })
+                            }
+                            className="rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-300 focus:border-blue-400 transition-all shadow-sm bg-white"
+                          />
+                          <Textarea
+                            placeholder="Descripción"
+                            value={newItemData.descripcion || ""}
+                            onChange={(e) =>
+                              setNewItemData({ ...newItemData, descripcion: e.target.value })
+                            }
+                            className="rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-200 focus:border-green-400 transition-all shadow-sm bg-white"
+                          />
+                        </>
+                      );
+                    case "empresa":
+                      return (
+                        <>
+                          <Input
+                            placeholder="País"
+                            value={newItemData.pais || ""}
+                            onChange={(e) =>
+                              setNewItemData({ ...newItemData, pais: e.target.value })
+                            }
+                            className="rounded-lg border border-gray-300 focus:ring-2 focus:ring-orange-300 focus:border-orange-400 transition-all shadow-sm bg-white"
+                          />
+                          <Input
+                            placeholder="Dirección"
+                            value={newItemData.direccion || ""}
+                            onChange={(e) =>
+                              setNewItemData({ ...newItemData, direccion: e.target.value })
+                            }
+                            className="rounded-lg border border-gray-300 focus:ring-2 focus:ring-yellow-300 focus:border-yellow-400 transition-all shadow-sm bg-white"
+                          />
+                        </>
+                      );
+                    case "plaga":
+                      return (
+                        <>
+                          <Input
+                            placeholder="Nombre científico"
+                            value={newItemData.nombreCientifico || ""}
+                            onChange={(e) =>
+                              setNewItemData({ ...newItemData, nombreCientifico: e.target.value })
+                            }
+                            className="rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-300 focus:border-red-400 transition-all shadow-sm bg-white"
+                          />
+                        </>
+                      );
+                    case "listaAvance":
+                      return (
+                        <>
+                          <Input
+                            placeholder="Valor (%)"
+                            type="number"
+                            min={0}
+                            max={100}
+                            value={newItemData.valor || ""}
+                            onChange={(e) =>
+                              setNewItemData({ ...newItemData, valor: e.target.value })
+                            }
+                            className="rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all shadow-sm bg-white"
+                          />
+                        </>
+                      );
+                    default:
+                      // Para tipos simples: tipoProducto, claseUso, tipoRegistroMarca, claseRegistroMarca, cultivo
+                      return null;
+                  }
+                })()}
+              </div>
+              <div className="w-full flex gap-3 mt-4 mb-2">
+                <Button
+                  className="flex-1 bg-gradient-to-r from-green-500 to-green-700 text-white font-semibold rounded-lg shadow-md hover:scale-[1.03] hover:from-green-600 hover:to-green-800 transition-all duration-150"
+                  disabled={!newItemName.trim()}
+                  onClick={async () => {
+                    await handleAddNewItem(newItemType, newItemName, newItemData);
+                    setOpenAddNewDialog(false);
+                    setNewItemName("");
+                    setNewItemData({});
+                  }}
+                >
+                  Guardar
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1 border border-gray-300 rounded-lg hover:bg-gray-100 transition-all duration-150"
+                  onClick={() => setOpenAddNewDialog(false)}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
-  )
+  );
 }
