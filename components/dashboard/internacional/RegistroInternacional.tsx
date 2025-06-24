@@ -189,6 +189,40 @@ function ComboboxWithAddNew({
   )
 }
 
+// --- Utilidad para normalizar tipos del payload ---
+function normalizePayload(payload: any): any {
+  // IDs y campos que deben ser number
+  const numberFields = [
+    "tipoProducto", "formulacion", "claseUso", "bandaToxicologica",
+    "presentacionRegistrada", "tipoEnvase", "claseRegistroMarca", "tipoRegistroMarca",
+    "id", "fabricante", "formulador", "cultivoId", "plagaId", "pcDias", "prHoras", "dosis", "lmr", "valor", "statusAvance"
+  ];
+  function normalize(obj: any): any {
+    if (Array.isArray(obj)) {
+      return obj.map(normalize);
+    } else if (obj && typeof obj === "object") {
+      const newObj: any = {};
+      for (const key in obj) {
+        // Si es un campo de los que deben ser number y es string numérico
+        if (numberFields.includes(key) && typeof obj[key] === "string" && !isNaN(Number(obj[key])) && obj[key] !== "") {
+          newObj[key] = Number(obj[key]);
+        }
+        // IDs en arrays (fabricante, formulador)
+        else if ((key === "fabricante" || key === "formulador") && Array.isArray(obj[key])) {
+          newObj[key] = obj[key].map((id: any) => (typeof id === "string" && !isNaN(Number(id))) ? Number(id) : id);
+        }
+        // Recursividad para objetos anidados
+        else {
+          newObj[key] = normalize(obj[key]);
+        }
+      }
+      return newObj;
+    }
+    return obj;
+  }
+  return normalize(payload);
+}
+
 export default function RegistroInternacional() {
   const apiService = new ApiService()
   const [submitting, setSubmitting] = useState(false)
@@ -375,17 +409,34 @@ export default function RegistroInternacional() {
       }
 
       // Empresas (ComboBox)
-      let empresasList: ComboBoxItem[] = []
+      let empresasFull: { id: number, nombre: string, pais: string, direccion: string }[] = [];
+      // console.log("Empresas para combobox (raw):", empresasRes);
       if (Array.isArray(empresasRes)) {
-        empresasList = toComboBoxItemArray(empresasRes, "empresaId", "nombre")
+        empresasFull = empresasRes.map(e => ({
+          id: e.empresaId ?? e.id,
+          nombre: e.nombre,
+          pais: e.pais,
+          direccion: e.direccion
+        }));
       } else if (empresasRes?.data && Array.isArray(empresasRes.data)) {
-        empresasList = toComboBoxItemArray(empresasRes.data, "empresaId", "nombre")
+        empresasFull = empresasRes.data.map(e => ({
+          id: e.empresaId ?? e.id,
+          nombre: e.nombre,
+          pais: e.pais,
+          direccion: e.direccion
+        }));
       } else if (empresasRes?.data?.data && Array.isArray(empresasRes.data.data)) {
-        empresasList = toComboBoxItemArray(empresasRes.data.data, "empresaId", "nombre")
+        empresasFull = empresasRes.data.data.map(e => ({
+          id: e.empresaId ?? e.id,
+          nombre: e.nombre,
+          pais: e.pais,
+          direccion: e.direccion
+        }));
       } else {
-        empresasList = []
+        empresasFull = [];
       }
-      setEmpresas(empresasList as any)
+      // console.log("Empresas para combobox (full):", empresasFull);
+      setEmpresas(empresasFull);
       // Tipos de producto
       if (Array.isArray(tiposProductoRes)) {
         setTiposProducto(tiposProductoRes)
@@ -468,11 +519,27 @@ export default function RegistroInternacional() {
       }
       // Empresas
       if (Array.isArray(empresasRes)) {
-        setEmpresas(empresasRes.map(e => ({ ...e, id: (e.empresaId ?? e.id)?.toString() })))
+        // console.log("Empresas:", empresasRes);
+        setEmpresas(empresasRes.map(e => ({
+          id: e.empresaId ?? e.id,
+          nombre: e.nombre,
+          pais: e.pais,
+          direccion: e.direccion
+        })));
       } else if (empresasRes?.data && Array.isArray(empresasRes.data)) {
-        setEmpresas(empresasRes.data.map(e => ({ ...e, id: (e.empresaId ?? e.id)?.toString() })))
+        setEmpresas(empresasRes.data.map(e => ({
+          id: e.empresaId ?? e.id,
+          nombre: e.nombre,
+          pais: e.pais,
+          direccion: e.direccion
+        })));
       } else if (empresasRes?.data?.data && Array.isArray(empresasRes.data.data)) {
-        setEmpresas(empresasRes.data.data.map(e => ({ ...e, id: (e.empresaId ?? e.id)?.toString() })))
+        setEmpresas(empresasRes.data.data.map(e => ({
+          id: e.empresaId ?? e.id,
+          nombre: e.nombre,
+          pais: e.pais,
+          direccion: e.direccion
+        })));
       } else {
         setEmpresas([])
       }
@@ -522,10 +589,30 @@ export default function RegistroInternacional() {
     }
   }, [id])
 
-  // Handle adding new master data item
+  useEffect(() => {
+    if (formData.ingredienteActivo && Array.isArray(formData.ingredienteActivo)) {
+      setIngredientes(formData.ingredienteActivo as IngredienteActivo[]);
+    }
+  }, [formData.ingredienteActivo]);
+
+  useEffect(() => {
+    if (formData.usos && Array.isArray(formData.usos)) {
+      setUsos(formData.usos as Uso[]);
+    }
+  }, [formData.usos]);
+
+  useEffect(() => {
+    if (formData.usos && Array.isArray(formData.usos)) {
+      const plagasMap = {};
+      formData.usos.forEach((uso, index) => {
+        plagasMap[index] = uso.plagas;
+      });
+      setPlagasUso(plagasMap);
+    }
+  }, [formData.usos]);
+
   const handleAddNewItem = async (type: string, name: string, additionalData: any = {}) => {
     try {
-      // Prepara los datos para el API
       const data = {
         nombre: name,
         ...additionalData,
@@ -543,7 +630,6 @@ export default function RegistroInternacional() {
         })(),
       };
 
-      // Define endpoint según el tipo
       let endpoint = "";
       switch (type) {
         case "ingredienteActivo":
@@ -869,8 +955,8 @@ export default function RegistroInternacional() {
     // Build certificado object ensuring we send only the IDs of fabricantes y formuladores
     const certificadoWithIds: any = {
       ...(formData.certificado || {}),
-      fabricante: fabricantes.map((f: any) => (f.id ?? f.nombre)),
-      formulador: formuladores.map((f: any) => (f.id ?? f.nombre)),
+      fabricante: fabricantes.map((f: any) => f.id),
+      formulador: formuladores.map((f: any) => f.id),
     }
 
     // Prepare the complete data object
@@ -916,7 +1002,20 @@ export default function RegistroInternacional() {
         }
       }
 
-      const response = await apiService.post<unknown>("/Formulario/guardar-producto", completeData, headers);
+      const enrichedFormData = {
+        ...formData,
+        ingredienteActivo: ingredientes,
+        fabricantes: fabricantes.map(f => ({ id: f.id, nombre: f.nombre, pais: f.pais, direccion: f.direccion })),
+        formuladores: formuladores.map(f => ({ id: f.id, nombre: f.nombre, pais: f.pais, direccion: f.direccion })),
+        usos,
+        certificado: {
+          ...(formData.certificado || {}),
+          fabricante: fabricantes.map(f => f.id),
+          formulador: formuladores.map(f => f.id),
+        },
+      };
+      const normalizedData = normalizePayload(enrichedFormData);
+      const response = await apiService.post<unknown>("/Formulario/guardar-producto", normalizedData, headers);
 
       if (!response.success) {
         throw new Error(response.error || "Error al guardar el producto");
@@ -1218,7 +1317,7 @@ export default function RegistroInternacional() {
                       <TableRow key={index}>
                         <TableCell>{ingrediente.nombre}</TableCell>
                         <TableCell>{ingrediente.concentracion}</TableCell>
-                        <TableCell>{ingrediente.porcentaje}</TableCell>
+                        <TableCell>{ingrediente.porcentaje + "%"}</TableCell>
                         <TableCell className="text-right">
                           <Button
                             variant="ghost"
@@ -1546,22 +1645,23 @@ export default function RegistroInternacional() {
                       <label className="block text-sm font-medium mb-1">Nombre Común</label>
                       <div className="relative">
                         <ComboboxWithAddNew
-                          data={((plagas || []).map(p => ({ id: p.plagaId, nombre: p.nombre + " - " + p.nombreCientifico })))}
-                          value={nuevaPlaga.nombreComun}
+                          data={(plagas || []).map(p => ({ id: p.plagaId, nombre: p.nombre + " - " + p.nombreCientifico }))}
+                          value={nuevaPlaga.id}
                           onChange={(value) => {
                             const stringValue = value.toString();
-                            // Busca la plaga por plagaId o id (según cómo venga en el array)
-                            const plaga = plagas.find((e) => (e.plagaId ?? e.id)?.toString() === stringValue);
+                            const plaga = plagas.find((e) => e.plagaId?.toString() === stringValue);
                             if (plaga) {
                               setNuevaPlaga((prev) => ({
                                 ...prev,
-                                nombreComun: stringValue,
+                                id: plaga.plagaId,
+                                nombreComun: plaga.nombre,
                                 nombreCientifico: plaga.nombreCientifico ?? "",
                               }));
                             } else {
                               setNuevaPlaga((prev) => ({
                                 ...prev,
-                                nombreComun: stringValue,
+                                id: undefined,
+                                nombreComun: "",
                                 nombreCientifico: "",
                               }));
                             }
@@ -1724,28 +1824,16 @@ export default function RegistroInternacional() {
                           data={empresas}
                           value={fabricante.id ? fabricante.id.toString() : ""}
                           onChange={(value) => {
-                            const stringValue = value.toString();
-                            const empresa = empresas.find((e) => e.id.toString() === stringValue);
+                            const empresa = empresas.find(e => e.id.toString() === value.toString());
                             if (empresa) {
-                              handleFabricanteChange(index, null, {
-                                id: stringValue,
-                                nombre: stringValue,
-                                pais: empresa.pais || "",
-                                direccion: empresa.direccion || ""
-                              });
-                              setTimeout(() => {
-                                console.log('Fabricante actualizado:', fabricantes[index]);
-                              }, 200);
+                              handleFabricanteChange(index, null, { ...empresa });
                             } else {
                               handleFabricanteChange(index, null, {
                                 id: "",
-                                nombre: stringValue,
+                                nombre: value.toString(),
                                 pais: "",
                                 direccion: ""
                               });
-                              setTimeout(() => {
-                                console.log('Fabricante actualizado:', fabricantes[index]);
-                              }, 200);
                             }
                           }}
                           placeholder="Selecciona empresa"
@@ -1827,28 +1915,16 @@ export default function RegistroInternacional() {
                           data={empresas}
                           value={formulador.id ? formulador.id.toString() : ""}
                           onChange={(value) => {
-                            const stringValue = value.toString();
-                            const empresa = empresas.find((e) => e.id.toString() === stringValue);
+                            const empresa = empresas.find(e => e.id.toString() === value.toString());
                             if (empresa) {
-                              handleFormuladorChange(index, null, {
-                                id: stringValue,
-                                nombre: stringValue,
-                                pais: empresa.pais || "",
-                                direccion: empresa.direccion || ""
-                              });
-                              setTimeout(() => {
-                                console.log('Formulador actualizado:', formuladores[index]);
-                              }, 200);
+                              handleFormuladorChange(index, null, { ...empresa });
                             } else {
                               handleFormuladorChange(index, null, {
                                 id: "",
-                                nombre: stringValue,
+                                nombre: value.toString(),
                                 pais: "",
                                 direccion: ""
                               });
-                              setTimeout(() => {
-                                console.log('Formulador actualizado:', formuladores[index]);
-                              }, 200);
                             }
                           }}
                           placeholder="Selecciona empresa"
