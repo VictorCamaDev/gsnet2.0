@@ -32,7 +32,7 @@ export default function DashboardLayout({
           <div className="max-w-full overflow-x-auto">{children}</div>
         </main>
       </div>
-      <DatabaseIndicator />
+      {/* <DatabaseIndicator /> */}
     </div>
   )
 }

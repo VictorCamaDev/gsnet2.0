@@ -86,7 +86,13 @@ export function DashboardSidebar({ isMobileOpen, onMobileClose }: DashboardSideb
             <CollapsibleTrigger asChild>
               <Button
                 variant="ghost"
-                className={cn("w-full justify-start mb-1 h-10 sm:h-9", isCollapsed ? "px-2" : "px-3 sm:px-4")}
+                className={cn(
+                  "w-full justify-start mb-1 h-10 sm:h-9",
+                  isCollapsed ? "px-2" : "px-3 sm:px-4",
+                  isActive && (theme?.accentColor
+                    ? "bg-green-200 text-green-900 font-bold border-l-4 border-green-600"
+                    : "hover:bg-slate-100 hover:text-green-700 transition")
+                )}
                 style={{
                   backgroundColor: isActive ? theme?.accentColor + "15" || "#f1f5f9" : "transparent",
                   color: isActive ? theme?.primaryColor : theme?.secondaryColor,
@@ -123,7 +129,7 @@ export function DashboardSidebar({ isMobileOpen, onMobileClose }: DashboardSideb
               <CollapsibleContent>
                 <ul className="pl-6 sm:pl-9 space-y-1 mt-1">
                   {item.submenu?.map((subItem, subIndex) => {
-                    const isSubActive = pathname === subItem.href
+                    const isSubActive = pathname === subItem.href || pathname.startsWith(subItem.href + "/")
                     return (
                       <motion.li
                         key={subItem.id}
@@ -135,7 +141,12 @@ export function DashboardSidebar({ isMobileOpen, onMobileClose }: DashboardSideb
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="w-full justify-start h-8 text-sm"
+                          className={cn(
+                            "w-full justify-start h-8 text-sm",
+                            isSubActive
+                              ? "bg-green-200 text-green-900 font-bold border-l-4 border-green-600"
+                              : "hover:bg-slate-100 hover:text-green-700 transition"
+                          )}
                           style={{
                             backgroundColor: isSubActive ? theme?.accentColor + "15" || "#f1f5f9" : "transparent",
                             color: isSubActive ? theme?.primaryColor : theme?.secondaryColor,

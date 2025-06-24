@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-
+import { useSearchParams } from "next/navigation";
 import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -110,6 +110,7 @@ function ComboboxWithAddNew({
   label: string
   onAddNew: (value: string) => void
 }) {
+
   const [open, setOpen] = useState(false)
   const [inputValue, setInputValue] = useState("")
   const [showAddNew, setShowAddNew] = useState(false)
@@ -191,6 +192,8 @@ function ComboboxWithAddNew({
 export default function RegistroInternacional() {
   const apiService = new ApiService()
   const [submitting, setSubmitting] = useState(false)
+  const searchParams = useSearchParams();
+  const id = searchParams.get("id");
 
   const [ingredientesActivos, setIngredientesActivos] = useState<MasterDataItem[]>([])
   const [tiposProducto, setTiposProducto] = useState<MasterDataItem[]>([])
@@ -493,6 +496,31 @@ export default function RegistroInternacional() {
   useEffect(() => {
     fetchMasterData()
   }, [])
+
+  // Precarga de datos para edición
+  useEffect(() => {
+    if (id) {
+      let headers: any = {};
+      const selectedCompany = sessionStorage.getItem("selected_company");
+      if (selectedCompany) {
+        try {
+          const companyObj = JSON.parse(selectedCompany);
+          if (companyObj?.id) {
+            headers["IdEmpresa"] = companyObj.id;
+          }
+        } catch (e) {
+          console.warn("Error parseando selected_company:", e);
+        }
+      }
+      apiService.get(`/RegistroInternacional/ObtenerRegistroInternacional/${id}`, headers)
+        .then(res => {
+          if (!res || !res.data) return;
+          setFormData(res.data);
+        });
+    } else {
+      console.log("No hay id");
+    }
+  }, [id])
 
   // Handle adding new master data item
   const handleAddNewItem = async (type: string, name: string, additionalData: any = {}) => {
@@ -1127,17 +1155,15 @@ export default function RegistroInternacional() {
                 <div>
                   <label className="block text-sm font-medium mb-1">Nombre</label>
                   <ComboboxWithAddNew
-                    data={((ingredientesActivos || []).map((ia) => ({ id: ia.ingredienteActivoId, nombre: ia.nombre })))}
-                    value={nuevoIngrediente.nombre}
-                    onChange={(value) => {
-                      if (typeof value === "string") {
-                        handleIngredienteInputChange("nombre", value)
-                      } else {
-                        const ingrediente = ingredientesActivos.find((i) => i.id === value)
-                        if (ingrediente) {
-                          handleIngredienteInputChange("nombre", ingrediente.nombre)
-                        }
-                      }
+                    data={(ingredientesActivos || []).map(c => ({ id: c.ingredienteActivoId, nombre: c.nombre }))}
+                    value={nuevoIngrediente.id}
+                    onChange={(selectedId) => {
+                      const ingredienteActivo = ingredientesActivos.find(c => c.ingredienteActivoId === Number(selectedId));
+                      setNuevoIngrediente((prev) => ({
+                        ...prev,
+                        id: Number(selectedId),
+                        nombre: ingredienteActivo ? ingredienteActivo.nombre : "",
+                      }));
                     }}
                     placeholder="Selecciona ingrediente activo"
                     label="ingrediente activo"
@@ -1332,7 +1358,7 @@ export default function RegistroInternacional() {
                 <div>
                   <label className="block text-sm font-medium mb-1">Vigencia de Registro</label>
                   <div className="flex items-center gap-2">
-                    {formData.certificado?.vigenciaRegistro === "INDEFINIDO" ? (
+                    {(formData.certificado?.vigenciaRegistro || "").toLowerCase() === "indefinido" ? (
                       <Input
                         type="text"
                         value="INDEFINIDO"
@@ -1350,8 +1376,8 @@ export default function RegistroInternacional() {
                     <label className="flex items-center gap-2 text-sm">
                       <input
                         type="checkbox"
-                        checked={formData.certificado?.vigenciaRegistro === 'INDEFINIDO'}
-                        onChange={(e) => handleNestedChange("certificado", "vigenciaRegistro", e.target.checked ? 'INDEFINIDO' : '')}
+                        checked={(formData.certificado?.vigenciaRegistro || "").toLowerCase() === 'indefinido'}
+                        onChange={(e) => handleNestedChange("certificado", "vigenciaRegistro", e.target.checked ? 'Indefinido' : '')}
                         className="accent-green-600"
                       />
                       Indefinido

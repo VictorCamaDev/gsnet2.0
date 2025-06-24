@@ -6,16 +6,16 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-slate-900">Bienvenido de vuelta</h2>
-        <p className="text-slate-600">Aquí tienes un resumen de tu actividad reciente</p>
+        <h2 className="text-2xl font-bold text-slate-900">Bienvenido</h2>
+        {/* <p className="text-slate-600">Aquí tienes un resumen de tu actividad reciente</p> */}
       </div>
 
-      <DashboardMetrics />
+      {/* <DashboardMetrics />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <RecentActivity />
         <PendingTasks />
-      </div>
+      </div> */}
     </div>
   )
 }

@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
-import { Pencil, Trash2, Plus, Loader2, FileX2 } from "lucide-react";
+import { Pencil, Trash2, Plus, Loader2, FileX2, Filter, X } from "lucide-react";
+import * as Dialog from '@radix-ui/react-dialog';
+
 import { ApiService } from "@/services/api.service"
 import Swal from "sweetalert2";
 
@@ -15,6 +17,7 @@ export interface ProductoInternacional {
   claseUso: string;
   formulacion: string;
   bandaToxicologica: string;
+  color: string;
   presentacionRegistrada: string;
   estabilidadProducto: string;
   ingredienteActivo: {
@@ -47,6 +50,7 @@ export interface ProductoInternacional {
 }
 
 export default function ConsultaInternacionalPage() {
+
   const [productos, setProductos] = useState<ProductoInternacional[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -56,6 +60,19 @@ export default function ConsultaInternacionalPage() {
   const router = useRouter();
   const [navigating, setNavigating] = useState(false);
   const apiService = new ApiService();
+
+  const [tipoProductoFilter, setTipoProductoFilter] = useState<string>("");
+  const [formulacionFilter, setFormulacionFilter] = useState<string>("");
+  const [claseUsoFilter, setClaseUsoFilter] = useState<string>("");
+  const [bandaToxicolFilter, setBandaToxicolFilter] = useState<string>("");
+  const [avanceFilter, setAvanceFilter] = useState<string>("");
+
+  const unique = (arr: string[]) => Array.from(new Set(arr.filter(Boolean)));
+
+  const tipoProductoOptions = unique(productos.map(p => p.tipoProducto));
+  const formulacionOptions = unique(productos.map(p => p.formulacion));
+  const claseUsoOptions = unique(productos.map(p => p.claseUso));
+  const bandaToxicolOptions = unique(productos.map(p => p.bandaToxicologica));
 
 
   useEffect(() => {
@@ -89,7 +106,6 @@ export default function ConsultaInternacionalPage() {
     } catch (err: any) {
       const msg = err.message || "";
       if (msg.includes("404")) {
-        // Sin productos registrados
         setProductos([]);
       } else {
         setError(msg);
@@ -100,7 +116,7 @@ export default function ConsultaInternacionalPage() {
   }
 
   function handleEdit(producto: ProductoInternacional) {
-    alert(`Editar producto: ${producto.producto}`);
+    router.push(`/dashboard/internacional/registro?id=${producto.registroProductoId}`);
   }
 
   async function handleDelete(producto: ProductoInternacional) {
@@ -120,7 +136,6 @@ export default function ConsultaInternacionalPage() {
         popup: 'swal2-compact-modal',
         title: 'swal2-compact-title',
         htmlContainer: 'swal2-compact-text',
-        icon: 'swal2-compact-icon',
         actions: 'swal2-compact-actions',
         confirmButton: 'swal2-compact-confirm',
         cancelButton: 'swal2-compact-cancel',
@@ -201,11 +216,23 @@ export default function ConsultaInternacionalPage() {
     }
   }
 
-  const filtered = productos.filter(p =>
-    (p.producto?.toLowerCase() || "").includes(search.toLowerCase()) ||
-    (p.ingredienteActivo?.[0]?.nombre?.toLowerCase() || "").includes(search.toLowerCase()) ||
-    (p.claseUso?.toLowerCase() || "").includes(search.toLowerCase())
-  );
+  const filtered = productos.filter(p => {
+    // Filtro de búsqueda general
+    const matchesSearch =
+      (p.producto?.toLowerCase() || "").includes(search.toLowerCase()) ||
+      (p.ingredienteActivo?.[0]?.nombre?.toLowerCase() || "").includes(search.toLowerCase()) ||
+      (p.claseUso?.toLowerCase() || "").includes(search.toLowerCase());
+    // Filtros avanzados
+    const matchesTipoProducto = !tipoProductoFilter || p.tipoProducto === tipoProductoFilter;
+    const matchesFormulacion = !formulacionFilter || p.formulacion === formulacionFilter;
+    const matchesClaseUso = !claseUsoFilter || p.claseUso === claseUsoFilter;
+    const matchesBandaToxicol = !bandaToxicolFilter || (p.color && p.color.trim().toLowerCase() === bandaToxicolFilter.trim().toLowerCase());
+    const avanceVal = parseFloat(p.avance?.valor || "0");
+    let matchesAvance = true;
+    if (avanceFilter === "completados") matchesAvance = avanceVal === 100;
+    if (avanceFilter === "pendientes") matchesAvance = avanceVal < 100;
+    return matchesSearch && matchesTipoProducto && matchesFormulacion && matchesClaseUso && matchesBandaToxicol && matchesAvance;
+  });
 
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
@@ -232,14 +259,200 @@ export default function ConsultaInternacionalPage() {
           {navigating ? "Redirigiendo..." : "Registrar nuevo"}
         </Button>
       </div>
+      {/* Buscador y botón de filtros */}
       <div className="flex items-center gap-2 mb-4">
         <Input
-          placeholder="Buscar por nombre o país..."
-          className="w-full md:w-80"
+          placeholder="Buscar por nombre, ingrediente, o clase de uso..."
+          className="w-full md:w-72"
           value={search}
           onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
         />
+        <Dialog.Root>
+          <Dialog.Trigger asChild>
+            <Button
+              type="button"
+              className="flex gap-2 items-center bg-slate-100 text-slate-700 border border-slate-300 hover:bg-slate-200 transition rounded shadow-sm px-4"
+            >
+              <Filter className="w-4 h-4" />
+              Filtros
+            </Button>
+          </Dialog.Trigger>
+          <Dialog.Portal>
+            <Dialog.Overlay className="fixed inset-0 z-40 bg-black/40 data-[state=open]:animate-fade-in" />
+            <Dialog.Content
+              className="fixed top-0 right-0 h-full w-full max-w-xs bg-gradient-to-br from-white via-slate-50 to-slate-200 shadow-2xl z-50 flex flex-col p-8 gap-4 rounded-l-3xl border-l border-slate-200 animate-[drawer-pop_0.45s_cubic-bezier(0.23,1,0.32,1)] outline-none"
+              style={{ boxShadow: 'rgba(30, 41, 59, 0.20) 0px 12px 36px' }}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <Dialog.Title asChild>
+                  <span className="text-lg font-semibold text-slate-800">Filtros avanzados</span>
+                </Dialog.Title>
+                <Dialog.Close asChild>
+                  <button
+                    className="text-slate-400 hover:text-slate-700 rounded-full p-1 focus:outline-none focus:ring-2 focus:ring-green-700"
+                    aria-label="Cerrar filtros"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </Dialog.Close>
+              </div>
+              {/* Chips de filtros activos */}
+              {(tipoProductoFilter || formulacionFilter || claseUsoFilter || bandaToxicolFilter || avanceFilter || search) && (
+                <div className="flex flex-wrap gap-2 mb-2 animate-fade-in">
+                  {search && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold shadow hover:bg-green-200 transition cursor-pointer">
+                      <Filter className="w-3 h-3" /> "{search}"
+                    </span>
+                  )}
+                  {tipoProductoFilter && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold shadow hover:bg-blue-200 transition cursor-pointer">
+                      <span className="font-bold">Tipo:</span> {tipoProductoFilter}
+                    </span>
+                  )}
+                  {formulacionFilter && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-xs font-semibold shadow hover:bg-purple-200 transition cursor-pointer">
+                      <span className="font-bold">Formulación:</span> {formulacionFilter}
+                    </span>
+                  )}
+                  {claseUsoFilter && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-orange-100 text-orange-700 text-xs font-semibold shadow hover:bg-orange-200 transition cursor-pointer">
+                      <span className="font-bold">Uso:</span> {claseUsoFilter}
+                    </span>
+                  )}
+                  {bandaToxicolFilter && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-rose-100 text-rose-700 text-xs font-semibold shadow hover:bg-rose-200 transition cursor-pointer">
+                      <span className="font-bold">Banda:</span> {bandaToxicolFilter}
+                    </span>
+                  )}
+                  {avanceFilter && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-slate-200 text-slate-700 text-xs font-semibold shadow hover:bg-slate-300 transition cursor-pointer">
+                      <span className="font-bold">Avance:</span> {avanceFilter === 'completados' ? '100%' : '<100%'}
+                    </span>
+                  )}
+                </div>
+              )}
+              <div className="flex flex-col gap-5 flex-1 overflow-y-auto">
+                <div>
+                  <label className="block text-xs text-slate-600 mb-2 font-medium flex items-center gap-1">Tipo Producto</label>
+                  <select
+                    className="border rounded-lg px-3 py-2 text-xs w-full focus:ring-2 focus:ring-green-600 transition hover:shadow focus:shadow"
+                    value={tipoProductoFilter}
+                    onChange={e => { setTipoProductoFilter(e.target.value); setCurrentPage(1); }}
+                  >
+                    <option value="">Todos</option>
+                    {tipoProductoOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-600 mb-2 font-medium flex items-center gap-1">Formulación</label>
+                  <select
+                    className="border rounded-lg px-3 py-2 text-xs w-full focus:ring-2 focus:ring-green-600 transition hover:shadow focus:shadow"
+                    value={formulacionFilter}
+                    onChange={e => { setFormulacionFilter(e.target.value); setCurrentPage(1); }}
+                  >
+                    <option value="">Todas</option>
+                    {formulacionOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-600 mb-2 font-medium flex items-center gap-1">Clase de Uso</label>
+                  <select
+                    className="border rounded-lg px-3 py-2 text-xs w-full focus:ring-2 focus:ring-green-600 transition hover:shadow focus:shadow"
+                    value={claseUsoFilter}
+                    onChange={e => { setClaseUsoFilter(e.target.value); setCurrentPage(1); }}
+                  >
+                    <option value="">Todas</option>
+                    {claseUsoOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-600 mb-2 font-medium flex items-center gap-1">Banda Toxicológica (Color)</label>
+                  <select
+                    className="border rounded-lg px-3 py-2 text-xs w-full focus:ring-2 focus:ring-green-600 transition hover:shadow focus:shadow"
+                    value={bandaToxicolFilter}
+                    onChange={e => { setBandaToxicolFilter(e.target.value); setCurrentPage(1); }}
+                  >
+                    <option value="">Todas</option>
+                    {(() => {
+                      // Contar productos por color normalizado
+                      const colorMap: Record<string, string> = {
+                        rojo: "#ef4444",
+                        azul: "#3b82f6",
+                        verde: "#22c55e",
+                        amarillo: "#fde047",
+                        naranja: "#fb923c",
+                        violeta: "#a78bfa",
+                        negro: "#000000",
+                        gris: "#64748b",
+                        marrón: "#92400e",
+                        blanco: "#f1f5f9"
+                      };
+                      const colorCounts: Record<string, { raw: string, count: number }> = {};
+                      productos.forEach(p => {
+                        if (p.color) {
+                          const norm = p.color.trim().toLowerCase();
+                          if (!colorCounts[norm]) colorCounts[norm] = { raw: p.color.trim(), count: 0 };
+                          colorCounts[norm].count++;
+                        }
+                      });
+                      // Ordenar por cantidad descendente
+                      const sortedColors = Object.entries(colorCounts)
+                        .sort((a, b) => b[1].count - a[1].count);
+                      return sortedColors.map(([norm, { raw, count }]) => {
+                        const colorCss = colorMap[norm] || raw;
+                        return (
+                          <option key={norm} value={raw}>
+                            <span style={{ color: colorCss }}>{"\u25CF"}</span> {raw} ({count})
+                          </option>
+                        );
+                      });
+                    })()}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-600 mb-2 font-medium flex items-center gap-1">Avance</label>
+                  <select
+                    className="border rounded-lg px-3 py-2 text-xs w-full focus:ring-2 focus:ring-green-600 transition hover:shadow focus:shadow"
+                    value={avanceFilter}
+                    onChange={e => { setAvanceFilter(e.target.value); setCurrentPage(1); }}
+                  >
+                    <option value="">Todos</option>
+                    <option value="completados">Completados (100%)</option>
+                    <option value="pendientes">Pendientes (&lt;100%)</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2 mt-6">
+                <Dialog.Close asChild>
+                  <button
+                    type="button"
+                    className="w-full py-2 rounded-lg bg-gradient-to-r from-slate-100 to-slate-200 border border-slate-300 text-slate-700 font-semibold shadow hover:from-slate-200 hover:to-slate-300 transition text-base"
+                    onClick={() => {
+                      setTipoProductoFilter("");
+                      setFormulacionFilter("");
+                      setClaseUsoFilter("");
+                      setBandaToxicolFilter("");
+                      setAvanceFilter("");
+                      setSearch("");
+                    }}
+                  >
+                    Limpiar filtros
+                  </button>
+                </Dialog.Close>
+                <Dialog.Close asChild>
+                  <Button
+                    type="button"
+                    className="w-full bg-gradient-to-r from-green-700 to-green-600 hover:from-green-800 hover:to-green-700 text-white rounded-lg shadow-lg mt-1 text-base py-2 font-bold tracking-wide"
+                  >
+                    Aplicar filtros
+                  </Button>
+                </Dialog.Close>
+              </div>
+            </Dialog.Content>
+          </Dialog.Portal>
+        </Dialog.Root>
       </div>
+
       {loading ? (
         <div className="flex justify-center items-center h-32">
           <svg className="animate-spin h-8 w-8 text-green-700" viewBox="0 0 50 50">
@@ -310,7 +523,32 @@ export default function ConsultaInternacionalPage() {
                     <td className="px-4 py-2 text-center text-slate-600">{producto.ingredienteActivo?.[0]?.porcentaje || "-"}</td>
                     <td className="px-4 py-2 text-center text-slate-600">{producto.formulacion || "-"}</td>
                     <td className="px-4 py-2 text-center text-slate-600">{producto.claseUso || "-"}</td>
-                    <td className="px-4 py-2 text-center text-slate-600">{producto.bandaToxicologica || "-"}</td>
+                    <td className="px-4 py-2 text-center text-slate-600">
+                      {(() => {
+                        const colorMap: Record<string, string> = {
+                          rojo: "#ef4444",
+                          azul: "#3b82f6",
+                          verde: "#22c55e",
+                          amarillo: "#fde047",
+                          naranja: "#fb923c",
+                          violeta: "#a78bfa",
+                          negro: "#000000",
+                          gris: "#64748b",
+                          marrón: "#92400e",
+                          blanco: "#f1f5f9"
+                        };
+                        const raw = producto.color?.trim().toLowerCase();
+                        const colorCss = raw ? (colorMap[raw] || producto.color) : undefined;
+                        return colorCss ? (
+                          <span
+                            className="inline-block w-3 h-3 rounded-full mr-1 align-middle border border-slate-200"
+                            style={{ backgroundColor: colorCss }}
+                            title={producto.color}
+                          />
+                        ) : null;
+                      })()}
+                      {producto.bandaToxicologica || "-"}
+                    </td>
                     <td className="px-4 py-2 text-center text-slate-600">{producto.presentacionRegistrada || "-"}</td>
                     <td className="px-4 py-2 text-center text-slate-600">{producto.estabilidadProducto || "-"}</td>
                     <td className="px-4 py-2 text-center text-slate-600">

@@ -62,6 +62,7 @@ export default function SeguimientoMuestras() {
     try {
       const res = await apiService.post<any>(
         "/RegistroNacional/ObtenerOCS",
+        {},
         headers
       );
       if (!res.success) throw new Error(res.error || "Error al obtener muestras");
@@ -125,9 +126,6 @@ export default function SeguimientoMuestras() {
     <div className="p-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <h1 className="text-2xl font-bold text-slate-900">Seguimiento de Muestras Nacionales</h1>
-        <Button className="bg-green-700 hover:bg-green-800 text-white rounded-lg shadow" size="sm">
-          <Plus className="w-4 h-4 mr-2" /> Registrar nueva muestra
-        </Button>
       </div>
       <div className="flex items-center gap-2 mb-4">
         <Input
@@ -152,40 +150,45 @@ export default function SeguimientoMuestras() {
             <table className="min-w-[3000px] text-sm">
               <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600">N°</th>
+                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600">#</th>
                   <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600">Acciones</th>
-                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600">Año</th>
                   <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600">Empresa</th>
+                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600">N°</th>
+                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600">Año</th>
+                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600">Supplier</th>
                   <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600">Formulador</th>
                   <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600">Origen</th>
-                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600">Proveedor</th>
-                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600">OC</th>
                   <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600">Marca</th>
                   <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600">IA</th>
+                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600">Kardex</th>
+                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600">OC</th>
                   <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600">Presentación</th>
                   <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600">Cantidad</th>
-                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600">Precio USD</th>
-                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600">Estado</th>
-                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600">Kardex</th>
-                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600 bg-blue-50 text-blue-700">Ingreso Planta</th>
-                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600 bg-blue-50 text-blue-700">Destino</th>
-                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600 bg-blue-50 text-blue-700">Fecha Ensayo</th>
-                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600 bg-blue-50 text-blue-700">Fecha Culminación</th>
-                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600 bg-blue-50 text-blue-700">Resultado Campo</th>
+                  <th className="px-4 py-2 text-center text-slate-600">Autorización</th>
+                  <th className="px-4 py-2 text-center text-slate-600">Importación</th>
+                  <th className="px-4 py-2 text-center text-slate-600">Agente</th>
+                  <th className="px-4 py-2 text-center text-slate-600">Nro de Guía</th>
+                  <th className="px-4 py-2 text-center text-slate-600">Precio (USD)</th>
+                  <th className="px-4 py-2 text-center text-slate-600">Estado</th>
+                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600 bg-blue-50 text-blue-700">Ingreso a Planta</th>
+                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600 bg-blue-50 text-blue-700">Destino de la Muestra</th>
+                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600 bg-blue-50 text-blue-700">Fecha de Ensayo Campo</th>
+                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600 bg-blue-50 text-blue-700">Fecha de Culminación de Ensayo</th>
+                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600 bg-blue-50 text-blue-700">Resultado de Campo</th>
                   <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600 bg-blue-50 text-blue-700">Comentarios</th>
                 </tr>
               </thead>
               <tbody>
                 {currentItems.length === 0 ? (
                   <tr>
-                    <td colSpan={20} className="text-center py-8 text-slate-400">
+                    <td colSpan={21} className="text-center py-8 text-slate-400">
                       No hay muestras registradas.
                     </td>
                   </tr>
                 ) : (
-                  currentItems.map((muestra) => (
+                  currentItems.map((muestra, idx) => (
                     <tr key={muestra.nro} className="hover:bg-slate-50 transition">
-                      <td className="px-4 py-2 text-center text-slate-600">{muestra.nro}</td>
+                      <td className="px-4 py-2 text-center text-slate-600">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
                       <td className="px-4 py-2 flex gap-2 justify-center">
                         <Button variant="ghost" size="icon" onClick={() => handleEdit(muestra)}>
                           <Pencil className="w-4 h-4 text-green-700" />
@@ -194,23 +197,28 @@ export default function SeguimientoMuestras() {
                           <Trash2 className="w-4 h-4 text-red-600" />
                         </Button>
                       </td>
-                      <td className="px-4 py-2 text-center text-slate-600">{muestra.año}</td>
                       <td className="px-4 py-2 text-center text-slate-600">{muestra.empresa}</td>
+                      <td className="px-4 py-2 text-center text-slate-600">{muestra.nro}</td>
+                      <td className="px-4 py-2 text-center text-slate-600">{muestra.año}</td>
+                      <td className="px-4 py-2 text-center text-slate-600">{muestra.supplier}</td>
                       <td className="px-4 py-2 text-center text-slate-600">{muestra.formulador}</td>
                       <td className="px-4 py-2 text-center text-slate-600">{muestra.origen}</td>
-                      <td className="px-4 py-2 text-center text-slate-600">{muestra.supplier}</td>
-                      <td className="px-4 py-2 text-center text-slate-600">{muestra.oc}</td>
                       <td className="px-4 py-2 text-center font-medium text-slate-800">{muestra.marca}</td>
                       <td className="px-4 py-2 text-center text-slate-600">{muestra.ia}</td>
+                      <td className="px-4 py-2 text-center text-slate-600">{muestra.kardex}</td>
+                      <td className="px-4 py-2 text-center text-slate-600">{muestra.oc}</td>
                       <td className="px-4 py-2 text-center text-slate-600">{muestra.presentacion}</td>
                       <td className="px-4 py-2 text-center text-slate-600">{muestra.quantity}</td>
+                      <td className="px-4 py-2 text-center text-slate-600">{'-'}</td> {/* Autorización */}
+                      <td className="px-4 py-2 text-center text-slate-600">{'-'}</td> {/* Importación */}
+                      <td className="px-4 py-2 text-center text-slate-600">{'-'}</td> {/* Agente */}
+                      <td className="px-4 py-2 text-center text-slate-600">{'-'}</td> {/* Nro de Guía */}
                       <td className="px-4 py-2 text-center text-slate-600">{muestra.priceUsd}</td>
                       <td className="px-4 py-2 text-center text-slate-600">
                         <span className="px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-700">
                           {muestra.status}
                         </span>
                       </td>
-                      <td className="px-4 py-2 text-center text-slate-600">{muestra.kardex}</td>
                       <td className="px-4 py-2 text-center text-blue-700">{muestra.ingresoPlanta || '-'}</td>
                       <td className="px-4 py-2 text-center text-blue-700">{muestra.destinoDeLaMuestra || '-'}</td>
                       <td className="px-4 py-2 text-center text-blue-700">{muestra.fechaDeEnsayoCampo || '-'}</td>
