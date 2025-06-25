@@ -4,7 +4,7 @@ export const mockCompanies: Company[] = [
   {
     id: "1",
     name: "Silvestre Perú",
-    domain: "acme.com",
+    domain: "",
     logo: "/logos/Silvestre.png",
     theme: {
       primaryColor: "#00563c",
@@ -25,7 +25,7 @@ export const mockCompanies: Company[] = [
   {
     id: "2",
     name: "Neoagrum",
-    domain: "techcorp.com",
+    domain: "",
     logo: "/logos/logoneoagrum.png",
     theme: {
       primaryColor: "#315644",
@@ -46,7 +46,7 @@ export const mockCompanies: Company[] = [
   {
     id: "3",
     name: "Itagro",
-    domain: "global.com",
+    domain: "",
     logo: "/logos/logoitagro.png",
     theme: {
       primaryColor: "#009a51",
@@ -67,7 +67,7 @@ export const mockCompanies: Company[] = [
   {
     id: "4",
     name: "Clenvi",
-    domain: "clenvi.com",
+    domain: "",
     logo: "/logos/logoclenvi.png",
     theme: {
       primaryColor: "#0891b2",
@@ -88,7 +88,7 @@ export const mockCompanies: Company[] = [
   {
     id: "5",
     name: "Talanu",
-    domain: "innovate.com",
+    domain: "",
     logo: "/logos/logotalanu.png",
     theme: {
       primaryColor: "#6eaa27",
@@ -109,7 +109,7 @@ export const mockCompanies: Company[] = [
   {
     id: "6",
     name: "Corebio",
-    domain: "innovate.com",
+    domain: "",
     logo: "/logos/logocorebio.png",
     theme: {
       primaryColor: "#526e84",
@@ -129,7 +129,7 @@ export const mockCompanies: Company[] = [
   },{
     id: "7",
     name: "Biocontrol",
-    domain: "biocontrol.com",
+    domain: "",
     logo: "/logos/logobiocontrol.png",
     theme: {
       primaryColor: "#396539",

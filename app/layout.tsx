@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import ClientLayout from "./client-layout";
 
 export const metadata: Metadata = {
-  title: "GSI - Grupo Silvestre Intranet",
+  title: "GSNET - Grupo Silvestre Intranet",
   description: "Plataforma interna para empleados",
   generator: "victor.cama",
 };

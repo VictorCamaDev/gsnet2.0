@@ -25,7 +25,7 @@ export default function HomePage() {
         }}
       >
         <Image
-          src="/logos/gsi-logo.svg"
+          src="/logos/gslogo.svg"
           alt="Logo Grupo Silvestre"
           width={120}
           height={120}
@@ -51,7 +51,7 @@ export default function HomePage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-6 sm:mb-8 flex flex-col items-center">
           <Image
-            src="/logos/gsi-logo.svg"
+            src="/logos/gslogo.svg"
             alt="Logo Grupo Silvestre"
             width={240}
             height={240}

@@ -124,8 +124,16 @@ export default function SeguimientoMuestras() {
 
   return (
     <div className="p-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-2">
         <h1 className="text-2xl font-bold text-slate-900">Seguimiento de Muestras Nacionales</h1>
+      </div>
+      {/* Leyenda de áreas */}
+      <div className="flex flex-col md:flex-row md:items-center gap-2 mb-4">
+        <span className="text-sm text-slate-700">Los campos están agrupados y coloreados según el área responsable:</span>
+        <div className="flex gap-2 mt-1 md:mt-0">
+          <span className="inline-flex items-center px-2 py-0.5 rounded bg-blue-100 text-blue-800 text-xs font-semibold border border-blue-200">Área Registros</span>
+          <span className="inline-flex items-center px-2 py-0.5 rounded bg-green-100 text-green-800 text-xs font-semibold border border-green-200">Área Comex</span>
+        </div>
       </div>
       <div className="flex items-center gap-2 mb-4">
         <Input
@@ -146,48 +154,63 @@ export default function SeguimientoMuestras() {
         <div className="text-red-600 text-center">{error}</div>
       ) : (
         <div className="space-y-6">
-          <div className="overflow-x-auto rounded-xl shadow border border-slate-100 bg-white">
+          {/* Tabla sólo en desktop y laptop */}
+          <div className="overflow-x-auto rounded-xl shadow border border-slate-100 bg-white hidden md:block">
             <table className="min-w-[3000px] text-sm">
               <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600">#</th>
-                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600">Acciones</th>
-                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600">Empresa</th>
-                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600">N°</th>
-                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600">Año</th>
-                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600">Supplier</th>
-                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600">Formulador</th>
-                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600">Origen</th>
-                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600">Marca</th>
-                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600">IA</th>
-                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600">Kardex</th>
-                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600">OC</th>
-                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600">Presentación</th>
-                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600">Cantidad</th>
-                  <th className="px-4 py-2 text-center text-slate-600">Autorización</th>
-                  <th className="px-4 py-2 text-center text-slate-600">Importación</th>
-                  <th className="px-4 py-2 text-center text-slate-600">Agente</th>
-                  <th className="px-4 py-2 text-center text-slate-600">Nro de Guía</th>
-                  <th className="px-4 py-2 text-center text-slate-600">Precio (USD)</th>
-                  <th className="px-4 py-2 text-center text-slate-600">Estado</th>
-                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600 bg-blue-50 text-blue-700">Ingreso a Planta</th>
-                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600 bg-blue-50 text-blue-700">Destino de la Muestra</th>
-                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600 bg-blue-50 text-blue-700">Fecha de Ensayo Campo</th>
-                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600 bg-blue-50 text-blue-700">Fecha de Culminación de Ensayo</th>
-                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600 bg-blue-50 text-blue-700">Resultado de Campo</th>
-                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600 bg-blue-50 text-blue-700">Comentarios</th>
+                  {/* Definición de áreas para cada columna */}
+                  {[
+                    { label: '#', area: null },
+                    { label: 'Acciones', area: null },
+                    { label: 'Empresa', area: 'registros' },
+                    { label: 'N°', area: 'comex' },
+                    { label: 'Año', area: 'comex' },
+                    { label: 'Supplier', area: 'comex' },
+                    { label: 'Formulador', area: 'registros' },
+                    { label: 'Origen', area: 'registros' },
+                    { label: 'Marca', area: 'registros' },
+                    { label: 'IA', area: 'registros' },
+                    { label: 'Kardex', area: 'registros' },
+                    { label: 'OC', area: 'comex' },
+                    { label: 'Presentación', area: 'comex' },
+                    { label: 'Cantidad', area: 'comex' },
+                    { label: 'Autorización Importación', area: 'registros' },
+                    { label: 'Agente', area: 'comex' },
+                    { label: 'Nro de Guía', area: 'comex' },
+                    { label: 'Precio (USD)', area: 'comex' },
+                    { label: 'Estado', area: 'comex' },
+                    { label: 'Ingreso a Planta', area: 'registros' },
+                    { label: 'Destino de la Muestra', area: 'registros' },
+                    { label: 'Fecha de Ensayo Campo', area: 'registros' },
+                    { label: 'Fecha de Culminación de Ensayo', area: 'registros' },
+                    { label: 'Resultado de Campo', area: 'registros' },
+                    { label: 'Comentarios', area: 'registros' },
+                  ].map((col, idx) => (
+                    <th
+                      key={col.label}
+                      className={`px-4 py-2 text-center text-xs font-semibold ${col.area === 'registros'
+                          ? 'bg-blue-50 text-blue-700 border-blue-100'
+                          : col.area === 'comex'
+                            ? 'bg-green-50 text-green-700 border-green-100'
+                            : 'text-slate-600'
+                        }`}
+                    >
+                      {col.label}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {currentItems.length === 0 ? (
                   <tr>
-                    <td colSpan={21} className="text-center py-8 text-slate-400">
+                    <td colSpan={27} className="text-center py-8 text-slate-400">
                       No hay muestras registradas.
                     </td>
                   </tr>
                 ) : (
                   currentItems.map((muestra, idx) => (
-                    <tr key={muestra.nro} className="hover:bg-slate-50 transition">
+                    <tr key={muestra.nro}>
                       <td className="px-4 py-2 text-center text-slate-600">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
                       <td className="px-4 py-2 flex gap-2 justify-center">
                         <Button variant="ghost" size="icon" onClick={() => handleEdit(muestra)}>
@@ -209,10 +232,10 @@ export default function SeguimientoMuestras() {
                       <td className="px-4 py-2 text-center text-slate-600">{muestra.oc}</td>
                       <td className="px-4 py-2 text-center text-slate-600">{muestra.presentacion}</td>
                       <td className="px-4 py-2 text-center text-slate-600">{muestra.quantity}</td>
-                      <td className="px-4 py-2 text-center text-slate-600">{'-'}</td> {/* Autorización */}
-                      <td className="px-4 py-2 text-center text-slate-600">{'-'}</td> {/* Importación */}
-                      <td className="px-4 py-2 text-center text-slate-600">{'-'}</td> {/* Agente */}
-                      <td className="px-4 py-2 text-center text-slate-600">{'-'}</td> {/* Nro de Guía */}
+                      <td className="px-4 py-2 text-center text-slate-600">-</td>
+                      <td className="px-4 py-2 text-center text-slate-600">-</td>
+                      <td className="px-4 py-2 text-center text-slate-600">-</td>
+                      <td className="px-4 py-2 text-center text-slate-600">-</td>
                       <td className="px-4 py-2 text-center text-slate-600">{muestra.priceUsd}</td>
                       <td className="px-4 py-2 text-center text-slate-600">
                         <span className="px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-700">
@@ -230,6 +253,67 @@ export default function SeguimientoMuestras() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Cards sólo en móviles */}
+          <div className="block md:hidden space-y-4">
+            {currentItems.length === 0 ? (
+              <div className="text-center py-8 text-slate-400">No hay muestras registradas.</div>
+            ) : (
+              currentItems.map((muestra, idx) => (
+                <div key={muestra.nro} className="rounded-xl shadow border border-slate-100 bg-white p-4 flex flex-col gap-2">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-bold text-blue-700">{muestra.marca}</span>
+                    <div className="flex gap-2">
+                      <Button variant="ghost" size="icon" onClick={() => handleEdit(muestra)}>
+                        <Pencil className="w-4 h-4 text-green-700" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(muestra)}>
+                        <Trash2 className="w-4 h-4 text-red-600" />
+                      </Button>
+                    </div>
+                  </div>
+                  {/* Campos agrupados por área */}
+                  <div className="flex flex-col gap-1">
+                    {/* Área Registros */}
+                    <div className="bg-blue-50 rounded p-2 mb-1">
+                      <div className="text-xs font-semibold text-blue-800 mb-1">Área Registros</div>
+                      <div className="grid grid-cols-2 gap-x-2 gap-y-1">
+                        <div><span className="text-sm font-semibold">Empresa:</span> <span className="text-xs">{muestra.empresa}</span></div>
+                        <div><span className="text-sm font-semibold">Formulador:</span> <span className="text-xs">{muestra.formulador}</span></div>
+                        <div><span className="text-sm font-semibold">Origen:</span> <span className="text-xs">{muestra.origen}</span></div>
+                        <div><span className="text-sm font-semibold">Marca:</span> <span className="text-xs">{muestra.marca}</span></div>
+                        <div><span className="text-sm font-semibold">IA:</span> <span className="text-xs">{muestra.ia}</span></div>
+                        <div><span className="text-sm font-semibold">Kardex:</span> <span className="text-xs">{muestra.kardex}</span></div>
+                        <div><span className="text-sm font-semibold">Autorización Importación:</span>-</div>
+                        <div><span className="text-sm font-semibold">Ingreso a Planta:</span> <span className="text-xs">{muestra.ingresoPlanta || '-'}</span></div>
+                        <div><span className="text-sm font-semibold">Destino de la Muestra:</span> <span className="text-xs">{muestra.destinoDeLaMuestra || '-'}</span></div>
+                        <div><span className="text-sm font-semibold">Fecha de Ensayo Campo:</span> <span className="text-xs">{muestra.fechaDeEnsayoCampo || '-'}</span></div>
+                        <div><span className="text-sm font-semibold">Fecha de Culminación de Ensayo:</span> <span className="text-xs">{muestra.fechaDeCulminacionDeEnsayo || '-'}</span></div>
+                        <div className="col-span-2"><span className="text-sm font-semibold">Resultado de Campo:</span> <span className="text-xs">{muestra.resultadoDeCampo || '-'}</span></div>
+                        <div className="col-span-2"><span className="text-sm font-semibold">Comentarios:</span> <span className="text-xs">{muestra.comentarios || '-'}</span></div>
+                      </div>
+                    </div>
+                    {/* Área Comex */}
+                    <div className="bg-green-50 rounded p-2 mb-1">
+                      <div className="text-xs font-semibold text-green-800 mb-1">Área Comex</div>
+                      <div className="grid grid-cols-2 gap-x-2 gap-y-1">
+                        <div><span className="text-sm font-semibold">N°:</span> <span className="text-xs">{muestra.nro}</span></div>
+                        <div><span className="text-sm font-semibold">Año:</span> <span className="text-xs">{muestra.año}</span></div>
+                        <div><span className="text-sm font-semibold">Supplier:</span> <span className="text-xs">{muestra.supplier}</span></div>
+                        <div><span className="text-sm font-semibold">OC:</span> <span className="text-xs">{muestra.oc}</span></div>
+                        <div><span className="text-sm font-semibold">Presentación:</span> <span className="text-xs">{muestra.presentacion}</span></div>
+                        <div><span className="text-sm font-semibold">Cantidad:</span> <span className="text-xs">{muestra.quantity}</span></div>
+                        <div><span className="text-sm font-semibold">Agente:</span> -</div>
+                        <div><span className="text-sm font-semibold">Nro de Guía:</span> -</div>
+                        <div><span className="text-sm font-semibold">Precio (USD):</span> <span className="text-xs">{muestra.priceUsd}</span></div>
+                        <div className="col-span-2"><span className="text-sm font-semibold">Estado:</span> <span className="px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-700">{muestra.status}</span></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-2">
@@ -262,9 +346,11 @@ export default function SeguimientoMuestras() {
                   href="#"
                   onClick={(e) => {
                     e.preventDefault();
-                    setCurrentPage(1);
+                    if (currentPage !== 1) setCurrentPage(1);
                   }}
                   className={currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''}
+                  tabIndex={currentPage === 1 ? -1 : 0}
+                  aria-disabled={currentPage === 1}
                 >
                   Primera
                 </PaginationLink>
@@ -274,9 +360,11 @@ export default function SeguimientoMuestras() {
                   href="#"
                   onClick={(e) => {
                     e.preventDefault();
-                    setCurrentPage(currentPage - 1);
+                    if (currentPage > 1) setCurrentPage(currentPage - 1);
                   }}
                   className={currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''}
+                  tabIndex={currentPage === 1 ? -1 : 0}
+                  aria-disabled={currentPage === 1}
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </PaginationLink>
@@ -306,9 +394,11 @@ export default function SeguimientoMuestras() {
                   href="#"
                   onClick={(e) => {
                     e.preventDefault();
-                    setCurrentPage(currentPage + 1);
+                    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
                   }}
                   className={currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : ''}
+                  tabIndex={currentPage === totalPages ? -1 : 0}
+                  aria-disabled={currentPage === totalPages}
                 >
                   <ChevronRight className="h-4 w-4" />
                 </PaginationLink>
@@ -318,9 +408,11 @@ export default function SeguimientoMuestras() {
                   href="#"
                   onClick={(e) => {
                     e.preventDefault();
-                    setCurrentPage(totalPages);
+                    if (currentPage !== totalPages) setCurrentPage(totalPages);
                   }}
                   className={currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : ''}
+                  tabIndex={currentPage === totalPages ? -1 : 0}
+                  aria-disabled={currentPage === totalPages}
                 >
                   Última
                 </PaginationLink>

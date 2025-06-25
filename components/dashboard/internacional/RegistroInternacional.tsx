@@ -559,6 +559,90 @@ export default function RegistroInternacional() {
     }
   }
 
+  // --- HANDLE SUBMIT REGISTRO/ACTUALIZAR ---
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setSubmitting(true);
+    Swal.fire({
+      title: 'Guardando...',
+      text: 'Por favor espere',
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      backdrop: true,
+      didOpen: () => {
+        Swal.showLoading();
+      },
+    });
+
+    let headers: any = {};
+    const selectedCompany = sessionStorage.getItem("selected_company");
+    if (selectedCompany) {
+      try {
+        const companyObj = JSON.parse(selectedCompany);
+        if (companyObj?.id) {
+          headers["IdEmpresa"] = companyObj.id;
+        }
+      } catch (e) {
+        console.warn("Error parseando selected_company:", e);
+      }
+    }
+
+    try {
+      // Construir payload
+      const certificadoWithIds: any = {
+        ...(formData.certificado || {}),
+        fabricante: fabricantes.map((f: any) => f.id),
+        formulador: formuladores.map((f: any) => f.id),
+      };
+      const payload = {
+        ...formData,
+        fabricantes,
+        formuladores,
+        usos,
+        ingredienteActivo: ingredientes,
+        certificado: certificadoWithIds,
+      };
+      let endpoint = "/Formulario/guardar-producto";
+      if (id) endpoint = "/Formulario/ActualizarRegistroInternacional";
+      const normalizedPayload = normalizePayload(payload);
+      const res = await apiService.post(endpoint, normalizedPayload, headers);
+      if (res && (res.success)) {
+        id ? await Swal.fire({
+          title: '¡Producto actualizado! 🎉',
+          showConfirmButton: false,
+          timer: 1800,
+          background: '#ecfdf5',
+          color: '#065f46',
+        }) :
+          await Swal.fire({
+            title: '¡Producto registrado! 🎉',
+            showConfirmButton: false,
+            timer: 1800,
+            background: '#ecfdf5',
+            color: '#065f46',
+          });
+        window.location.href = "/dashboard/internacional/consulta";
+      } else {
+        await Swal.fire({
+          icon: 'error',
+          title: 'Ups... Ocurrió un error',
+          text: 'No se pudo registrar el producto. Intenta nuevamente.',
+          confirmButtonColor: '#dc2626',
+        });
+      }
+    } catch (err) {
+      await Swal.fire({
+        icon: 'error',
+        title: 'Ups... Ocurrió un error',
+        text: 'No se pudo registrar el producto. Intenta nuevamente.',
+        confirmButtonColor: '#dc2626',
+      });
+      console.error(err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   // Llamar fetchMasterData al montar el componente
   useEffect(() => {
     fetchMasterData()
@@ -603,13 +687,90 @@ export default function RegistroInternacional() {
 
   useEffect(() => {
     if (formData.usos && Array.isArray(formData.usos)) {
-      const plagasMap = {};
+      const plagasMap: Record<number, Plaga[]> = {};
       formData.usos.forEach((uso, index) => {
-        plagasMap[index] = uso.plagas;
+        plagasMap[index] = (uso.plagas || []).map((plaga: any) => ({
+          id: plaga.id ?? undefined,
+          nombreComun: plaga.nombreComun ?? "",
+          nombreCientifico: plaga.nombreCientifico ?? "",
+          dosis: plaga.dosis ?? "",
+          lmr: plaga.lmr ?? "",
+          pcDias: plaga.pcDias ?? 0,
+          prHoras: plaga.prHoras ?? 0,
+        }));
       });
       setPlagasUso(plagasMap);
     }
   }, [formData.usos]);
+
+  useEffect(() => {
+    if (formData.fabricantes && empresas.length > 0) {
+      setFabricantes(
+        (formData.fabricantes as any[]).map(f => {
+          if (typeof f === 'number' || typeof f === 'string') {
+            const emp = empresas.find(e => e.id === Number(f));
+            return emp ? {
+              id: emp.id,
+              nombre: emp.nombre,
+              pais: (emp as any).pais ?? '',
+              direccion: (emp as any).direccion ?? ''
+            } : { id: Number(f), nombre: '', pais: '', direccion: '' };
+          }
+          if (typeof f === 'object') {
+            const emp = empresas.find(e => e.id === (f.id ?? f.empresaId));
+            if (emp) {
+              return {
+                id: emp.id,
+                nombre: emp.nombre,
+                pais: (emp as any).pais ?? '',
+                direccion: (emp as any).direccion ?? ''
+              };
+            }
+            return {
+              id: f.id ?? f.empresaId,
+              nombre: f.nombre ?? '',
+              pais: f.pais ?? '',
+              direccion: f.direccion ?? ''
+            };
+          }
+          return { id: '', nombre: '', pais: '', direccion: '' };
+        }) as Empresa[]
+      );
+    }
+    if (formData.formuladores && empresas.length > 0) {
+      setFormuladores(
+        (formData.formuladores as any[]).map(f => {
+          if (typeof f === 'number' || typeof f === 'string') {
+            const emp = empresas.find(e => e.id === Number(f));
+            return emp ? {
+              id: emp.id,
+              nombre: emp.nombre,
+              pais: (emp as any).pais ?? '',
+              direccion: (emp as any).direccion ?? ''
+            } : { id: Number(f), nombre: '', pais: '', direccion: '' };
+          }
+          if (typeof f === 'object') {
+            const emp = empresas.find(e => e.id === (f.id ?? f.empresaId));
+            if (emp) {
+              return {
+                id: emp.id,
+                nombre: emp.nombre,
+                pais: (emp as any).pais ?? '',
+                direccion: (emp as any).direccion ?? ''
+              };
+            }
+            return {
+              id: f.id ?? f.empresaId,
+              nombre: f.nombre ?? '',
+              pais: f.pais ?? '',
+              direccion: f.direccion ?? ''
+            };
+          }
+          return { id: '', nombre: '', pais: '', direccion: '' };
+        }) as Empresa[]
+      );
+    }
+  }, [formData.fabricantes, formData.formuladores, empresas]);
 
   const handleAddNewItem = async (type: string, name: string, additionalData: any = {}) => {
     try {
@@ -868,6 +1029,80 @@ export default function RegistroInternacional() {
     setFormuladores(updatedFormuladores);
   }
 
+  // --- NORMALIZADOR DE PAYLOAD PARA TIPOS NUMÉRICOS ---
+  function normalizePayload(payload: any): any {
+    const toNumber = (val: any) =>
+      val === null || val === undefined || val === "" ? null : typeof val === "number" ? val : parseFloat(val);
+
+    return {
+      ...payload,
+      registroProductoId: toNumber(payload.registroProductoId),
+      tipoProducto: toNumber(payload.tipoProducto),
+      formulacion: toNumber(payload.formulacion),
+      claseUso: toNumber(payload.claseUso),
+      bandaToxicologica: toNumber(payload.bandaToxicologica),
+      avance: payload.avance
+        ? {
+          ...payload.avance,
+          statusAvance: toNumber(payload.avance.statusAvance),
+          valor: toNumber(payload.avance.valor),
+        }
+        : undefined,
+      certificado: payload.certificado
+        ? {
+          ...payload.certificado,
+          formulador: Array.isArray(payload.certificado.formulador)
+            ? payload.certificado.formulador.map(toNumber)
+            : [],
+          fabricante: Array.isArray(payload.certificado.fabricante)
+            ? payload.certificado.fabricante.map(toNumber)
+            : [],
+        }
+        : undefined,
+      ingredienteActivo: Array.isArray(payload.ingredienteActivo)
+        ? payload.ingredienteActivo.map((ing: any) => ({
+          ...ing,
+          id: toNumber(ing.id),
+        }))
+        : [],
+      fabricantes: Array.isArray(payload.fabricantes)
+        ? payload.fabricantes.map((emp: any) => ({
+          ...emp,
+          id: toNumber(emp.id),
+        }))
+        : [],
+      formuladores: Array.isArray(payload.formuladores)
+        ? payload.formuladores.map((emp: any) => ({
+          ...emp,
+          id: toNumber(emp.id),
+        }))
+        : [],
+      marca: payload.marca
+        ? {
+          ...payload.marca,
+          claseRegistroMarca: toNumber(payload.marca.claseRegistroMarca),
+          tipoRegistroMarca: toNumber(payload.marca.tipoRegistroMarca),
+        }
+        : undefined,
+      usos: Array.isArray(payload.usos)
+        ? payload.usos.map((uso: any) => ({
+          ...uso,
+          cultivoId: toNumber(uso.cultivoId),
+          plagas: Array.isArray(uso.plagas)
+            ? uso.plagas.map((plaga: any) => ({
+              ...plaga,
+              id: toNumber(plaga.id),
+              dosis: toNumber(plaga.dosis),
+              lmr: toNumber(plaga.lmr),
+              pcDias: toNumber(plaga.pcDias),
+              prHoras: toNumber(plaga.prHoras),
+            }))
+            : [],
+        }))
+        : [],
+    };
+  }
+
   // Handle logo upload
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -937,160 +1172,64 @@ export default function RegistroInternacional() {
     }
   }
 
-  // Handle form submission
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setSubmitting(true);
-    Swal.fire({
-      title: 'Guardando...',
-      text: 'Por favor espere',
-      allowOutsideClick: false,
-      allowEscapeKey: false,
-      backdrop: true,
-      didOpen: () => {
-        Swal.showLoading();
-      },
-    });
 
-    // Build certificado object ensuring we send only the IDs of fabricantes y formuladores
-    const certificadoWithIds: any = {
-      ...(formData.certificado || {}),
-      fabricante: fabricantes.map((f: any) => f.id),
-      formulador: formuladores.map((f: any) => f.id),
-    }
+  //     
 
-    // Prepare the complete data object
-    const completeData: IntProductoRegistradoEntity = {
-      ...(formData as IntProductoRegistradoEntity),
-      certificado: certificadoWithIds as any,
-      ingredienteActivo: ingredientes,
-      fabricantes: fabricantes,
-      formuladores: formuladores,
-      usos: usos,
-    }
-
-    //console.log("Form data to submit:", completeData)
-
-    try {
-      // Llamada real al endpoint para guardar el producto
-      const headers: Record<string, string> = {};
-      const selectedCompany = sessionStorage.getItem("selected_company");
-      if (selectedCompany) {
-        try {
-          const companyObj = JSON.parse(selectedCompany);
-          if (companyObj?.id) {
-            headers.IdEmpresa = companyObj.id.toString();
-          }
-        } catch (e) {
-          console.warn("Error parseando selected_company:", e);
-        }
-      }
-
-      // Agregar IdUsuario / Usuario al header si existen
-      const currentUser = sessionStorage.getItem("current_user");
-      if (currentUser) {
-        try {
-          const userObj = JSON.parse(currentUser);
-          if (userObj?.codigoUsuario) {
-            headers.codigoUsuario = userObj.codigoUsuario.toString();
-          }
-          if (userObj?.loginUsuario) {
-            headers.loginUsuario = userObj.loginUsuario;
-          }
-        } catch (e) {
-          console.warn("Error parseando current_user:", e);
-        }
-      }
-
-      const enrichedFormData = {
-        ...formData,
-        ingredienteActivo: ingredientes,
-        fabricantes: fabricantes.map(f => ({ id: f.id, nombre: f.nombre, pais: f.pais, direccion: f.direccion })),
-        formuladores: formuladores.map(f => ({ id: f.id, nombre: f.nombre, pais: f.pais, direccion: f.direccion })),
-        usos,
-        certificado: {
-          ...(formData.certificado || {}),
-          fabricante: fabricantes.map(f => f.id),
-          formulador: formuladores.map(f => f.id),
-        },
-      };
-      const normalizedData = normalizePayload(enrichedFormData);
-      const response = await apiService.post<unknown>("/Formulario/guardar-producto", normalizedData, headers);
-
-      if (!response.success) {
-        throw new Error(response.error || "Error al guardar el producto");
-      }
-
-      await Swal.fire({
-        icon: 'success',
-        title: '¡Producto registrado! 🎉',
-        showConfirmButton: false,
-        timer: 1800,
-        background: '#ecfdf5',
-        color: '#065f46',
-      });
-
-      // Reset form after successful submission
-      setFormData({
-        tipoProducto: "",
-        producto: "",
-        formulacion: "",
-        claseUso: "",
-        bandaToxicologica: "",
-        presentacionRegistrada: "",
-        tipoEnvase: "",
-        materialesEnvase: "",
-        descripcion: "",
-        dictamenTecnico: "",
-        estabilidadProducto: "",
-        ingredienteActivo: [],
-        avance: {
-          numeroExpediente: "",
-          presentacionExpediente: "",
-          terminoRegistro: "",
-          comentario: "",
-          statusAvance: "",
-          valor: "",
-        },
-        certificado: {
-          numeroCertificado: "",
-          fechaRegistro: "",
-          fechaActualizacion: "",
-          vigenciaRegistro: "",
-          formulador: [],
-          fabricante: [],
-        },
-        fabricantes: [],
-        formuladores: [],
-        marca: {
-          marcaRegistrada: "",
-          numeroRegistro: "",
-          claseRegistroMarca: "",
-          tipoRegistroMarca: "",
-          fechaRegistro: "",
-          vigencia: "",
-          logo: "",
-        },
-        usos: [],
-      })
-      setIngredientes([])
-      setFabricantes([])
-      setFormuladores([])
-      setUsos([])
-      setPlagasUso({})
-      setCurrentStep(1)
-      setSubmitting(false)
-    } catch (error) {
-      console.error("Error registering product:", error)
-      await Swal.fire({
-        icon: 'error',
-        title: 'Ups... Ocurrió un error',
-        text: 'No se pudo registrar el producto. Intenta nuevamente.',
-        confirmButtonColor: '#dc2626',
-      });
-      setSubmitting(false)
-    }
-  }
+  //     // Reset form after successful submission
+  //     setFormData({
+  //       tipoProducto: "",
+  //       producto: "",
+  //       formulacion: "",
+  //       claseUso: "",
+  //       bandaToxicologica: "",
+  //       presentacionRegistrada: "",
+  //       tipoEnvase: "",
+  //       materialesEnvase: "",
+  //       descripcion: "",
+  //       dictamenTecnico: "",
+  //       estabilidadProducto: "",
+  //       ingredienteActivo: [],
+  //       avance: {
+  //         numeroExpediente: "",
+  //         presentacionExpediente: "",
+  //         terminoRegistro: "",
+  //         comentario: "",
+  //         statusAvance: "",
+  //         valor: "",
+  //       },
+  //       certificado: {
+  //         numeroCertificado: "",
+  //         fechaRegistro: "",
+  //         fechaActualizacion: "",
+  //         vigenciaRegistro: "",
+  //         formulador: [],
+  //         fabricante: [],
+  //       },
+  //       fabricantes: [],
+  //       formuladores: [],
+  //       marca: {
+  //         marcaRegistrada: "",
+  //         numeroRegistro: "",
+  //         claseRegistroMarca: "",
+  //         tipoRegistroMarca: "",
+  //         fechaRegistro: "",
+  //         vigencia: "",
+  //         logo: "",
+  //       },
+  //       usos: [],
+  //     })
+  //     setIngredientes([])
+  //     setFabricantes([])
+  //     setFormuladores([])
+  //     setUsos([])
+  //     setPlagasUso({})
+  //     setCurrentStep(1)
+  //     setSubmitting(false)
+  //   } catch (error) {
+  //     console.error("Error registering product:", error)
+  //     
+  //   }
+  // }
 
   // Navigation functions
   const goToStep = (step: number) => {
@@ -1305,20 +1444,20 @@ export default function RegistroInternacional() {
               {ingredientes.length > 0 ? (
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>Nombre</TableHead>
-                      <TableHead>Concentración</TableHead>
-                      <TableHead>Porcentaje (%)</TableHead>
-                      <TableHead className="text-right">Acciones</TableHead>
+                    <TableRow >
+                      <TableHead className="text-center">Nombre</TableHead>
+                      <TableHead className="text-center">Concentración</TableHead>
+                      <TableHead className="text-center">Porcentaje (%)</TableHead>
+                      <TableHead className="text-center">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {ingredientes.map((ingrediente, index) => (
-                      <TableRow key={index}>
+                      <TableRow key={index} className="text-center">
                         <TableCell>{ingrediente.nombre}</TableCell>
                         <TableCell>{ingrediente.concentracion}</TableCell>
-                        <TableCell>{ingrediente.porcentaje + "%"}</TableCell>
-                        <TableCell className="text-right">
+                        <TableCell>{ingrediente.porcentaje}</TableCell>
+                        <TableCell className="text-center">
                           <Button
                             variant="ghost"
                             size="icon"
@@ -2254,9 +2393,19 @@ export default function RegistroInternacional() {
                       type="button"
                       onClick={handleSubmit}
                       className="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white px-6 py-2"
+                      disabled={submitting}
                     >
-                      <Save className="h-4 w-4 mr-2" />
-                      Guardar Registro
+                      {submitting ? (
+                        <>
+                          <span className="animate-spin mr-2 w-4 h-4 border-2 border-white border-t-transparent rounded-full inline-block" />
+                          {id ? 'Actualizando...' : 'Guardando...'}
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-4 w-4 mr-2" />
+                          {id ? 'Actualizar' : 'Guardar Registro'}
+                        </>
+                      )}
                     </Button>
                   )}
                 </div>

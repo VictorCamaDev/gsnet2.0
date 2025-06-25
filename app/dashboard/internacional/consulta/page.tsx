@@ -516,12 +516,12 @@ export default function ConsultaInternacionalPage() {
                         <Trash2 className="w-4 h-4 text-red-600" />
                       </Button>
                     </td>
-                    <td className="px-4 py-2 text-center font-medium text-slate-800">{producto.producto}</td>
-                    <td className="px-4 py-2 text-center text-slate-600">{producto.tipoProducto || "-"}</td>
+                    <td className="px-4 py-2 text-left font-medium text-slate-800">{producto.producto}</td>
+                    <td className="px-4 py-2 text-left text-slate-600">{producto.tipoProducto || "-"}</td>
                     <td className="px-4 py-2 text-center text-slate-600">{producto.ingredienteActivo?.[0]?.nombre || "-"}</td>
                     <td className="px-4 py-2 text-center text-slate-600">{producto.ingredienteActivo?.[0]?.concentracion || "-"}</td>
                     <td className="px-4 py-2 text-center text-slate-600">{producto.ingredienteActivo?.[0]?.porcentaje || "-"}</td>
-                    <td className="px-4 py-2 text-center text-slate-600">{producto.formulacion || "-"}</td>
+                    <td className="px-4 py-2 text-left text-slate-600">{producto.formulacion || "-"}</td>
                     <td className="px-4 py-2 text-center text-slate-600">{producto.claseUso || "-"}</td>
                     <td className="px-4 py-2 text-center text-slate-600">
                       {(() => {
