@@ -189,6 +189,13 @@ export default function ConsultaInternacionalPage() {
         headers
       );
       if (!res.success) throw new Error(res.error || "Error al eliminar producto");
+
+      const res2 = await apiService.post<any>(
+        `/Log/InsertarLog`,
+        { accion: "Eliminar registro internacional", descripcion: `Se eliminó el registro internacional con ID ${producto.registroProductoId}`, ruta: window.location.pathname },
+        headers
+      );
+
       await fetchProductos();
       Swal.close();
       await Swal.fire({

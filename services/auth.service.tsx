@@ -108,7 +108,33 @@ export class AuthService {
 
   async logout(): Promise<void> {
     try {
-      await this.apiService.post("/auth/logout", {})
+      const headers: Record<string, string> = {};
+      const selectedCompany = sessionStorage.getItem("selected_company");
+      if (selectedCompany) {
+        try {
+          const companyObj = JSON.parse(selectedCompany);
+          if (companyObj?.id) {
+            headers["IdEmpresa"] = companyObj.id.toString();
+          }
+        } catch (e) {
+          console.warn("Error parseando selected_company:", e);
+        }
+      }
+      const currentUser = sessionStorage.getItem("current_user");
+      if (currentUser) {
+        try {
+          const userObj = JSON.parse(currentUser);
+          if (userObj?.codigoUsuario) {
+            headers.codigousuario = userObj.codigoUsuario.toString();
+          }
+          if (userObj?.loginUsuario) {
+            headers.loginusuario = userObj.loginUsuario;
+          }
+        } catch (e) {
+          console.warn("Error parseando current_user:", e);
+        }
+      }
+      await this.apiService.post("/auth/logout", {}, headers);
     } catch (e) {
     } finally {
       sessionStorage.removeItem("auth_token")
@@ -129,7 +155,6 @@ export class AuthService {
   async refreshToken(): Promise<boolean> {
     const token = sessionStorage.getItem("auth_token")
     if (!token || AuthService.isTokenExpired(token)) {
-      // Token no existe o ya expiró, no intentes refresh
       sessionStorage.removeItem("auth_token")
       sessionStorage.removeItem("current_user")
       return false

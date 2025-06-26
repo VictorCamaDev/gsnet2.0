@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/use-auth"
 import { useCompanyTheme } from "@/contexts/company-theme-context"
 import { LogoutScreen } from "@/components/auth/logout-screen"
 import { LogoutSuccess } from "@/components/auth/logout-success"
+import { insertarLog } from "@/utils/log";
 
 type LogoutState = "processing" | "success" | "error"
 
@@ -19,6 +20,20 @@ export default function LogoutPage() {
     const performLogout = async () => {
       try {
         await new Promise((resolve) => setTimeout(resolve, 2000))
+
+        let usuarioLogout = "desconocido";
+        try {
+          const currentUser = sessionStorage.getItem("current_user");
+          if (currentUser) {
+            const userObj = JSON.parse(currentUser);
+            usuarioLogout = userObj?.loginUsuario || userObj?.email || "desconocido";
+          }
+        } catch {}
+        await insertarLog({
+          accion: "Logout",
+          descripcion: `Logout del usuario ${usuarioLogout}`,
+          ruta: "/Logout",
+        });
 
         await logout()
         setLogoutState("success")

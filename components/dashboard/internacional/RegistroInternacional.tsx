@@ -586,6 +586,21 @@ export default function RegistroInternacional() {
         console.warn("Error parseando selected_company:", e);
       }
     }
+    // Agregar codigousuario y loginusuario
+    const currentUser = sessionStorage.getItem("current_user");
+    if (currentUser) {
+      try {
+        const userObj = JSON.parse(currentUser);
+        if (userObj?.codigoUsuario) {
+          headers.codigousuario = userObj.codigoUsuario.toString();
+        }
+        if (userObj?.loginUsuario) {
+          headers.loginusuario = userObj.loginUsuario;
+        }
+      } catch (e) {
+        console.warn("Error parseando current_user:", e);
+      }
+    }
 
     try {
       // Construir payload
@@ -607,6 +622,18 @@ export default function RegistroInternacional() {
       const normalizedPayload = normalizePayload(payload);
       const res = await apiService.post(endpoint, normalizedPayload, headers);
       if (res && (res.success)) {
+        // Log de auditoría: creación o edición de registro internacional
+        await apiService.post(
+          '/Log/InsertarLog',
+          {
+            accion: id ? 'Editar registro internacional' : 'Nuevo registro internacional',
+            descripcion: id
+              ? `Se editó el registro internacional con ID ${id}`
+              : `Se creó un nuevo registro internacional`,
+            ruta: window.location.pathname,
+          },
+          headers 
+        );
         id ? await Swal.fire({
           title: '¡Producto actualizado! 🎉',
           showConfirmButton: false,
@@ -851,6 +878,13 @@ export default function RegistroInternacional() {
         if (typeof fetchMasterData === 'function') {
           await fetchMasterData();
         }
+        
+        const { insertarLog } = await import('../../../utils/log');
+        await insertarLog({
+          accion: 'Alta maestro',
+          descripcion: `Se agregó ${type} con nombre "${name}" y ID ${response.data?.id}`,
+          ruta: window.location.pathname,
+        });
         toast.success("¡Agregado exitosamente!");
         return newItem;
       } else {
@@ -1315,7 +1349,7 @@ export default function RegistroInternacional() {
               <div>
                 <label className="block text-sm font-medium mb-1">Banda Toxicológica</label>
                 <ComboboxWithAddNew
-                  data={(bandasTox || []).map((b) => ({ id: b.bandaToxId, nombre: b.descripcion }))}
+                  data={(bandasTox || []).map((b) => ({ id: b.bandaToxId, nombre: b.descripcion + " - " + b.color}))}
                   value={formData.bandaToxicologica || ""}
                   onChange={(value) => handleInputChange("bandaToxicologica", value.toString())}
                   placeholder="Selecciona banda toxicológica"

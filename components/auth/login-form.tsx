@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation"
 import type { Company } from "@/types/company"
 import { useMsal } from "@azure/msal-react";
 import { useAuth } from "@/hooks/use-auth"
+import { insertarLog } from "@/utils/log";
 
 interface LoginFormProps {
   company: Company
@@ -64,6 +65,12 @@ export function LoginForm({ company }: LoginFormProps) {
       const success = await loginWithMicrosoft(msToken, email);
       if (success) {
         setLoginState("success");
+        // Log de auditoría de login exitoso
+        await insertarLog({
+          accion: "Login",
+          descripcion: `Inicio de sesión exitoso para el usuario ${email}`,
+          ruta: "/Login",
+        });
         setTimeout(() => {
           window.location.href = "/dashboard";
         }, 1200);
@@ -92,6 +99,12 @@ export function LoginForm({ company }: LoginFormProps) {
       const result = await authService.loginWithCredentials(credentials.username, credentials.password);
       if (result.success) {
         setLoginState("success");
+        // Log de auditoría de login exitoso
+        await insertarLog({
+          accion: "Login",
+          descripcion: `Inicio de sesión exitoso para el usuario ${credentials.username}`,
+          ruta: "/Login",
+        });
         setTimeout(() => {
           window.location.href = "/dashboard";
         }, 1200);
