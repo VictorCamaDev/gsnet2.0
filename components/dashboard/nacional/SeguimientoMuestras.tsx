@@ -384,43 +384,132 @@ export default function SeguimientoMuestras() {
   }
 
   async function handleEditSave(updatedFields: Partial<MuestraNacional>) {
-    if (!editingMuestra) return;
-    let headers: any = {};
-    const selectedCompany = sessionStorage.getItem("selected_company");
-    if (selectedCompany) {
-      try {
-        const companyObj = JSON.parse(selectedCompany);
-        if (companyObj?.id) {
-          headers["IdEmpresa"] = companyObj.id;
-        }
-      } catch (e) {
-        console.warn("Error parseando selected_company:", e);
-      }
-    }
-    const updated = { ...editingMuestra, ...updatedFields };
-    updated.nroGuia = String(updated.nroGuia ?? "");
-    updated.priceUsd = String(updated.priceUsd ?? "");
+  if (!editingMuestra) return;
+  let headers: any = {};
+  const selectedCompany = sessionStorage.getItem("selected_company");
+  if (selectedCompany) {
     try {
-      const res = await apiService.post("/RegistroNacional/ActualizarMuestraNacional", updated, headers);
-      if (res.success) {
-        setMuestras(prev => prev.map(m => m.nro === updated.nro ? updated : m));
-        await Swal.fire("¡Actualizado!", "El seguimiento de muestra ha sido actualizado.", "success");
-        window.location.reload(); 
-      } else {
-        await Swal.fire("Error", res.error || "No se pudo actualizar el seguimiento de la muestra.", "error");
+      const companyObj = JSON.parse(selectedCompany);
+      if (companyObj?.id) {
+        headers["IdEmpresa"] = companyObj.id;
       }
-    } catch (err) {
-      await Swal.fire("Error", "No se pudo actualizar el seguimiento de la muestra.", "error");
-      console.error(err);
-    }
-    handleEditModalClose();
-  }
-
-  function handleDelete(muestra: MuestraNacional) {
-    if (confirm(`¿Eliminar muestra ${muestra.marca}?`)) {
-
+    } catch (e) {
+      console.warn("Error parseando selected_company:", e);
     }
   }
+  // Agregar codigousuario y loginusuario
+  const currentUser = sessionStorage.getItem("current_user");
+  if (currentUser) {
+    try {
+      const userObj = JSON.parse(currentUser);
+      if (userObj?.codigoUsuario) {
+        headers.codigousuario = userObj.codigoUsuario.toString();
+      }
+      if (userObj?.loginUsuario) {
+        headers.loginusuario = userObj.loginUsuario;
+      }
+    } catch (e) {
+      console.warn("Error parseando current_user:", e);
+    }
+  }
+  const updated = { ...editingMuestra, ...updatedFields };
+  updated.nroGuia = String(updated.nroGuia ?? "");
+  updated.priceUsd = String(updated.priceUsd ?? "");
+  try {
+    const res = await apiService.post("/RegistroNacional/ActualizarMuestraNacional", updated, headers);
+    if (res.success) {
+      // Insertar log de auditoría solo si fue exitoso
+      await apiService.post(
+        '/Log/InsertarLog',
+        {
+          accion: 'Actualizar seguimiento de muestra',
+          descripcion: `Se actualizó el seguimiento de muestra con ID ${updated.nro}`,
+          ruta: window.location.pathname,
+        },
+        headers
+      );
+      setMuestras(prev => prev.map(m => m.nro === updated.nro ? updated : m));
+      await Swal.fire("¡Actualizado!", "El seguimiento de muestra ha sido actualizado.", "success");
+      window.location.reload(); 
+    } else {
+      await Swal.fire("Error", res.error || "No se pudo actualizar el seguimiento de la muestra.", "error");
+    }
+  } catch (err) {
+    await Swal.fire("Error", "No se pudo actualizar el seguimiento de la muestra.", "error");
+    console.error(err);
+  }
+  handleEditModalClose();
+}
+
+
+  async function handleDelete(muestra: MuestraNacional) {
+  const result = await Swal.fire({
+    title: `¿Está seguro?`,
+    text: `¿Desea eliminar este seguimiento? Esta acción no se puede deshacer.`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Sí, eliminar',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#d33',
+    cancelButtonColor: '#3085d6',
+  });
+  if (!result.isConfirmed) return;
+
+  let headers: any = {};
+  const selectedCompany = sessionStorage.getItem("selected_company");
+  if (selectedCompany) {
+    try {
+      const companyObj = JSON.parse(selectedCompany);
+      if (companyObj?.id) {
+        headers["IdEmpresa"] = companyObj.id;
+      }
+    } catch (e) {
+      console.warn("Error parseando selected_company:", e);
+    }
+  }
+  // Agregar codigousuario y loginusuario
+  const currentUser = sessionStorage.getItem("current_user");
+  if (currentUser) {
+    try {
+      const userObj = JSON.parse(currentUser);
+      if (userObj?.codigoUsuario) {
+        headers.codigousuario = userObj.codigoUsuario.toString();
+      }
+      if (userObj?.loginUsuario) {
+        headers.loginusuario = userObj.loginUsuario;
+      }
+    } catch (e) {
+      console.warn("Error parseando current_user:", e);
+    }
+  }
+
+  try {
+    const apiService = new ApiService();
+    // El endpoint espera el id en la URL
+    const res = await apiService.post(`/RegistroNacional/EliminarRegistroNacional/${muestra.nro}`, {}, headers);
+    if (res.success) {
+      // Insertar log de auditoría solo si fue exitoso
+      await apiService.post(
+        '/Log/InsertarLog',
+        {
+          accion: 'Eliminar seguimiento de muestra',
+          descripcion: `Se eliminó el seguimiento de muestra con ID ${muestra.nro}`,
+          ruta: window.location.pathname,
+        },
+        headers
+      );
+      setMuestras(prev => prev.filter(m => m.nro !== muestra.nro));
+      await Swal.fire("¡Eliminado!", "El seguimiento de muestra ha sido eliminado exitosamente.", "success");
+    } else {
+      await Swal.fire("Error", res.error || "No se pudo eliminar el seguimiento de la muestra.", "error");
+    }
+  } catch (err) {
+    await Swal.fire("Error", "No se pudo eliminar el seguimiento de la muestra.", "error");
+    console.error(err);
+  }
+}
+
+
 
   const filtered = muestras.filter(m =>
     m.marca?.toLowerCase().includes(search.toLowerCase()) ||
