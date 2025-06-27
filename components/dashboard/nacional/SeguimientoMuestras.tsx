@@ -55,7 +55,6 @@ function FloatingInput({
   );
 }
 
-// Componente de input con validación de Kardex
 function KardexInput({ value, readOnly = false }: {
   value: string;
   readOnly?: boolean;
@@ -95,6 +94,20 @@ function EditRegistroModal({ open, muestra, onClose, onSave }: {
   const kardexLastValue = useRef<string | null>(null);
   const [activeTab, setActiveTab] = useState<'registros' | 'comex'>('registros');
 
+  // Utilidad para formatear fechas a YYYY-MM-DD para los inputs type=date
+  function formatDateForInput(dateStr?: string | null): string {
+    if (!dateStr) return '';
+    // Si ya está en formato YYYY-MM-DD, no cambia nada
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+    // Si viene en formato dd/mm/aaaa o similar, conviértelo
+    const match = dateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (match) {
+      return `${match[3]}-${match[2]}-${match[1]}`;
+    }
+    // Si no matchea, retorna string vacío
+    return '';
+  }
+
   React.useEffect(() => {
     if (muestra) {
       setFields({
@@ -111,16 +124,16 @@ function EditRegistroModal({ open, muestra, onClose, onSave }: {
         quantity: muestra.quantity,
         autorizacion: muestra.autorizacion,
         agente: muestra.agente,
-        nroguia: muestra.nroguia,
+        nroGuia: muestra.nroGuia,
         priceUsd: muestra.priceUsd,
         status: muestra.status,
-        ingresoPlanta: muestra.ingresoPlanta,
+        ingresoPlanta: formatDateForInput(muestra.ingresoPlanta),
         kardex: muestra.kardex,
         destinoDeLaMuestra: muestra.destinoDeLaMuestra,
-        fechaDeEnsayoCampo: muestra.fechaDeEnsayoCampo,
-        fechaDeCulminacionDeEnsayo: muestra.fechaDeCulminacionDeEnsayo,
+        fechaDeEnsayoCampo: formatDateForInput(muestra.fechaDeEnsayoCampo),
+        fechaDeCulminacionDeEnsayo: formatDateForInput(muestra.fechaDeCulminacionDeEnsayo),
         resultadoDeCampo: muestra.resultadoDeCampo,
-        comentarios: muestra.comentarios,
+        comentarios: muestra.comentarios
       });
       setKardexValidation({ status: 'idle' });
     }
@@ -252,7 +265,7 @@ function EditRegistroModal({ open, muestra, onClose, onSave }: {
                 {fields.agente === 'Otros' && (
                   <FloatingInput label="Detalle agente" name="detalleAgente" value={fields.detalleAgente ?? ''} readOnly />
                 )}
-                <FloatingInput label="Nro de Guía" name="nroguia" value={fields.nroguia ?? ''} readOnly />
+                <FloatingInput label="Nro de Guía" name="nroGuia" value={fields.nroGuia ?? ''} readOnly />
                 <FloatingInput label="Precio (USD)" name="priceUsd" value={fields.priceUsd ?? ''} readOnly />
                 <FloatingInput label="Estado" name="status" value={fields.status ?? ''} readOnly />
               </div>
@@ -300,8 +313,8 @@ export interface MuestraNacional {
   quantity: number | null;
   autorizacion: string | null;
   agente: string | null;
-  nroguia: number | null;
-  priceUsd: number | null;
+  nroGuia: string | null;
+  priceUsd: string | null;
   status: string | null;
   ingresoPlanta: string | null;
   kardex: string | null;
@@ -385,16 +398,19 @@ export default function SeguimientoMuestras() {
       }
     }
     const updated = { ...editingMuestra, ...updatedFields };
+    updated.nroGuia = String(updated.nroGuia ?? "");
+    updated.priceUsd = String(updated.priceUsd ?? "");
     try {
       const res = await apiService.post("/RegistroNacional/ActualizarMuestraNacional", updated, headers);
       if (res.success) {
         setMuestras(prev => prev.map(m => m.nro === updated.nro ? updated : m));
-        Swal.fire("¡Actualizado!", "La muestra fue actualizada.", "success");
+        await Swal.fire("¡Actualizado!", "El seguimiento de muestra ha sido actualizado.", "success");
+        window.location.reload(); 
       } else {
-        Swal.fire("Error", res.error || "No se pudo actualizar la muestra.", "error");
+        await Swal.fire("Error", res.error || "No se pudo actualizar el seguimiento de la muestra.", "error");
       }
     } catch (err) {
-      Swal.fire("Error", "No se pudo actualizar la muestra.", "error");
+      await Swal.fire("Error", "No se pudo actualizar el seguimiento de la muestra.", "error");
       console.error(err);
     }
     handleEditModalClose();
@@ -563,7 +579,7 @@ export default function SeguimientoMuestras() {
                       <td className="px-4 py-2 text-center text-slate-600">{muestra.quantity}</td>
                       <td className="px-4 py-2 text-center text-slate-600">{muestra.autorizacion}</td>
                       <td className="px-4 py-2 text-center text-slate-600">{muestra.agente}</td>
-                      <td className="px-4 py-2 text-center text-slate-600">{muestra.nroguia}</td>
+                      <td className="px-4 py-2 text-center text-slate-600">{muestra.nroGuia}</td>
                       <td className="px-4 py-2 text-center text-slate-600">{"$ " + muestra.priceUsd}</td>
                       <td className="px-4 py-2 text-center text-slate-600">
                         <span className="px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-700">
@@ -613,7 +629,7 @@ export default function SeguimientoMuestras() {
                         <div><span className="text-sm font-semibold">Marca:</span> <span className="text-xs">{muestra.marca}</span></div>
                         <div><span className="text-sm font-semibold">IA:</span> <span className="text-xs">{muestra.ia}</span></div>
                         <div><span className="text-sm font-semibold">Kardex:</span> <span className="text-xs">{muestra.kardex}</span></div>
-                        <div><span className="text-sm font-semibold">Autorización Importación:</span>-</div>
+                        <div><span className="text-sm font-semibold">Autorización Importación:</span> <span className="text-xs">{muestra.autorizacion || '-'}</span></div>
                         <div><span className="text-sm font-semibold">Ingreso a Planta:</span> <span className="text-xs">{muestra.ingresoPlanta || '-'}</span></div>
                         <div><span className="text-sm font-semibold">Destino de la Muestra:</span> <span className="text-xs">{muestra.destinoDeLaMuestra || '-'}</span></div>
                         <div><span className="text-sm font-semibold">Fecha de Ensayo Campo:</span> <span className="text-xs">{muestra.fechaDeEnsayoCampo || '-'}</span></div>
