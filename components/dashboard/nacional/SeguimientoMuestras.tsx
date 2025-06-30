@@ -326,6 +326,9 @@ export interface MuestraNacional {
 }
 
 export default function SeguimientoMuestras() {
+  const [selectedRowId, setSelectedRowId] = useState<number | null>(null);
+  const [showIdBox, setShowIdBox] = useState(false);
+
   const [muestras, setMuestras] = useState<MuestraNacional[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -588,6 +591,20 @@ export default function SeguimientoMuestras() {
         <div className="text-red-600 text-center">{error}</div>
       ) : (
         <div className="space-y-6">
+          {/* Cuadro de ID seleccionado */}
+          {showIdBox && selectedRowId !== null && (
+            <div className="mb-2 px-4 py-2 rounded bg-blue-50 text-blue-900 text-sm font-semibold shadow border border-blue-300 flex items-center gap-2">
+              <span>Muestra seleccionada: </span>
+              <span className="font-bold">N° {selectedRowId}</span>
+              <button
+                className="ml-auto px-2 py-0.5 rounded text-xs bg-blue-50 hover:bg-blue-50 transition"
+                onClick={() => setShowIdBox(false)}
+              >
+                Cerrar
+              </button>
+            </div>
+          )}
+
           {/* Tabla sólo en desktop y laptop */}
           <div className="overflow-x-auto rounded-xl shadow border border-slate-100 bg-white hidden md:block">
             <table className="min-w-[3000px] text-sm">
@@ -595,9 +612,9 @@ export default function SeguimientoMuestras() {
                 <tr>
                   {/* Definición de áreas para cada columna */}
                   {[
-                    { label: '#', area: null },
+                    // { label: '#', area: null },
                     { label: 'Acciones', area: null },
-                    { label: 'Empresa', area: 'registros' },
+                    // { label: 'Empresa', area: 'registros' },
                     { label: 'N°', area: 'comex' },
                     { label: 'Año', area: 'comex' },
                     { label: 'Supplier', area: 'comex' },
@@ -623,7 +640,7 @@ export default function SeguimientoMuestras() {
                   ].map((col, idx) => (
                     <th
                       key={col.label}
-                      className={`px-4 py-2 text-center text-xs font-semibold ${col.area === 'registros'
+                      className={`px-4 py-2 text-center text-xs font-semibold whitespace-nowrap ${col.area === 'registros'
                         ? 'bg-blue-50 text-blue-700 border-blue-100'
                         : col.area === 'comex'
                           ? 'bg-green-50 text-green-700 border-green-100'
@@ -644,9 +661,16 @@ export default function SeguimientoMuestras() {
                   </tr>
                 ) : (
                   currentItems.map((muestra, idx) => (
-                    <tr key={muestra.nro}>
-                      <td className="px-4 py-2 text-center text-slate-600">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
-                      <td className="px-4 py-2 flex gap-2 justify-center">
+                    <tr
+                      key={muestra.nro}
+                      className={selectedRowId === muestra.nro ? "bg-blue-50" : "hover:bg-blue-50 cursor-pointer"}
+                      onClick={() => {
+                        setSelectedRowId(muestra.nro ?? null);
+                        setShowIdBox(true);
+                      }}
+                    >
+                      {/* <td className="px-4 py-2 text-center text-slate-600 whitespace-nowrap">{(currentPage - 1) * itemsPerPage + idx + 1}</td> */}
+                      <td className="px-4 py-2 flex gap-2 justify-center whitespace-nowrap" onClick={e => e.stopPropagation()}>
                         <Button variant="ghost" size="icon" onClick={() => handleEdit(muestra)}>
                           <Pencil className="w-4 h-4 text-green-700" />
                         </Button>
@@ -654,33 +678,33 @@ export default function SeguimientoMuestras() {
                           <Trash2 className="w-4 h-4 text-red-600" />
                         </Button>
                       </td>
-                      <td className="px-4 py-2 text-center text-slate-600">{muestra.empresa}</td>
-                      <td className="px-4 py-2 text-center text-slate-600">{muestra.nro}</td>
-                      <td className="px-4 py-2 text-center text-slate-600">{muestra.año}</td>
-                      <td className="px-4 py-2 text-center text-slate-600">{muestra.supplier}</td>
-                      <td className="px-4 py-2 text-center text-slate-600">{muestra.formulador}</td>
-                      <td className="px-4 py-2 text-center text-slate-600">{muestra.origen}</td>
-                      <td className="px-4 py-2 text-center font-medium text-slate-800">{muestra.marca}</td>
-                      <td className="px-4 py-2 text-center text-slate-600">{muestra.ia}</td>
-                      <td className="px-4 py-2 text-center text-slate-600">{muestra.kardex}</td>
-                      <td className="px-4 py-2 text-center text-slate-600">{muestra.oc}</td>
-                      <td className="px-4 py-2 text-center text-slate-600">{muestra.presentacion}</td>
-                      <td className="px-4 py-2 text-center text-slate-600">{muestra.quantity}</td>
-                      <td className="px-4 py-2 text-center text-slate-600">{muestra.autorizacion}</td>
-                      <td className="px-4 py-2 text-center text-slate-600">{muestra.agente}</td>
-                      <td className="px-4 py-2 text-center text-slate-600">{muestra.nroGuia}</td>
-                      <td className="px-4 py-2 text-center text-slate-600">{"$ " + muestra.priceUsd}</td>
-                      <td className="px-4 py-2 text-center text-slate-600">
+                      {/* <td className="px-4 py-2 text-center text-slate-600 whitespace-nowrap">{muestra.empresa}</td> */}
+                      <td className="px-4 py-2 text-center text-slate-600 whitespace-nowrap">{muestra.nro}</td>
+                      <td className="px-4 py-2 text-center text-slate-600 whitespace-nowrap">{muestra.año}</td>
+                      <td className="px-4 py-2 text-center text-slate-600 whitespace-nowrap">{muestra.supplier}</td>
+                      <td className="px-4 py-2 text-center text-slate-600 whitespace-nowrap">{muestra.formulador}</td>
+                      <td className="px-4 py-2 text-center text-slate-600 whitespace-nowrap">{muestra.origen}</td>
+                      <td className="px-4 py-2 text-center font-medium text-slate-800 whitespace-nowrap">{muestra.marca}</td>
+                      <td className="px-4 py-2 text-center text-slate-600 whitespace-nowrap">{muestra.ia}</td>
+                      <td className="px-4 py-2 text-center text-slate-600 whitespace-nowrap">{muestra.kardex}</td>
+                      <td className="px-4 py-2 text-center text-slate-600 whitespace-nowrap">{muestra.oc}</td>
+                      <td className="px-4 py-2 text-center text-slate-600 whitespace-nowrap">{muestra.presentacion}</td>
+                      <td className="px-4 py-2 text-center text-slate-600 whitespace-nowrap">{muestra.quantity}</td>
+                      <td className="px-4 py-2 text-center text-slate-600 whitespace-nowrap">{muestra.autorizacion}</td>
+                      <td className="px-4 py-2 text-center text-slate-600 whitespace-nowrap">{muestra.agente}</td>
+                      <td className="px-4 py-2 text-center text-slate-600 whitespace-nowrap">{muestra.nroGuia}</td>
+                      <td className="px-4 py-2 text-center text-slate-600 whitespace-nowrap">{"$ " + muestra.priceUsd}</td>
+                      <td className="px-4 py-2 text-center text-slate-600 whitespace-nowrap">
                         <span className="px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-700">
                           {muestra.status}
                         </span>
                       </td>
-                      <td className="px-4 py-2 text-center text-blue-700">{muestra.ingresoPlanta}</td>
-                      <td className="px-4 py-2 text-center text-blue-700">{muestra.destinoDeLaMuestra}</td>
-                      <td className="px-4 py-2 text-center text-blue-700">{muestra.fechaDeEnsayoCampo}</td>
-                      <td className="px-4 py-2 text-center text-blue-700">{muestra.fechaDeCulminacionDeEnsayo}</td>
-                      <td className="px-4 py-2 text-center text-blue-700">{muestra.resultadoDeCampo}</td>
-                      <td className="px-4 py-2 text-center text-blue-700">{muestra.comentarios}</td>
+                      <td className="px-4 py-2 text-center text-blue-700 whitespace-nowrap">{muestra.ingresoPlanta}</td>
+                      <td className="px-4 py-2 text-center text-blue-700 whitespace-nowrap">{muestra.destinoDeLaMuestra}</td>
+                      <td className="px-4 py-2 text-center text-blue-700 whitespace-nowrap">{muestra.fechaDeEnsayoCampo}</td>
+                      <td className="px-4 py-2 text-center text-blue-700 whitespace-nowrap">{muestra.fechaDeCulminacionDeEnsayo}</td>
+                      <td className="px-4 py-2 text-center text-blue-700 whitespace-nowrap">{muestra.resultadoDeCampo}</td>
+                      <td className="px-4 py-2 text-center text-blue-700 whitespace-nowrap">{muestra.comentarios}</td>
                     </tr>
                   ))
                 )}

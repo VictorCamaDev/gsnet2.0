@@ -50,8 +50,10 @@ export interface ProductoInternacional {
 }
 
 export default function ConsultaInternacionalPage() {
-
+  // ...
   const [productos, setProductos] = useState<ProductoInternacional[]>([]);
+  const [selectedRowId, setSelectedRowId] = useState<number | null>(null);
+  const selectedProducto = selectedRowId ? productos.find(p => p.registroProductoId === selectedRowId) : null;
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [error, setError] = useState("");
@@ -460,6 +462,13 @@ export default function ConsultaInternacionalPage() {
         </Dialog.Root>
       </div>
 
+      {/* Mensaje del producto seleccionado */}
+      {selectedProducto && (
+        <div className="mt-4 p-3 mb-4 rounded bg-green-50 border border-green-200 text-green-800 text-center font-semibold shadow">
+          Producto seleccionado: {selectedProducto.producto}
+        </div>
+      )}
+
       {loading ? (
         <div className="flex justify-center items-center h-32">
           <svg className="animate-spin h-8 w-8 text-green-700" viewBox="0 0 50 50">
@@ -482,7 +491,7 @@ export default function ConsultaInternacionalPage() {
           <table className="min-w-[3000px] text-sm">
             <thead className="bg-slate-50">
               <tr>
-                <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600">ID</th>
+                <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600">Codigo de Producto</th>
                 <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600">Acciones</th>
                 <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600">Producto</th>
                 <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600">Tipo Producto</th>
@@ -513,8 +522,12 @@ export default function ConsultaInternacionalPage() {
                 </tr>
               ) : (
                 paginated.map((producto, index) => (
-                  <tr key={producto.registroProductoId} className="hover:bg-slate-50 transition">
-                    <td className="px-4 py-2 text-center text-slate-600 font-medium">{(currentPage - 1) * pageSize + index + 1}</td>
+                  <tr
+                    key={producto.registroProductoId}
+                    className={`hover:bg-slate-50 transition ${selectedRowId === producto.registroProductoId ? 'bg-green-50 ring-2 ring-green-300' : ''}`}
+                    onClick={() => setSelectedRowId(producto.registroProductoId)}
+                  >
+                    <td className="px-4 py-2 text-center text-slate-600 font-medium">{producto.registroProductoId}</td>
                     <td className="px-4 py-2 flex gap-2 justify-center">
                       <Button variant="ghost" size="icon" onClick={() => handleEdit(producto)}>
                         <Pencil className="w-4 h-4 text-green-700" />
@@ -600,6 +613,8 @@ export default function ConsultaInternacionalPage() {
           </Button>
         </div>
       )}
+
+
 
       {navigating && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm">
