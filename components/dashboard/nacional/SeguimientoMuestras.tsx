@@ -148,24 +148,24 @@ function EditRegistroModal({ open, muestra, onClose, onSave }: {
   }
 
   async function handleSubmit(e: React.FormEvent) {
-  e.preventDefault();
-  onClose();
-  setTimeout(async () => {
-    const result = await Swal.fire({
-      title: '¿Está seguro?',
-      text: '¿Desea guardar los cambios?',
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonText: 'Sí, guardar',
-      cancelButtonText: 'Cancelar',
-      confirmButtonColor: '#2563eb',
-      cancelButtonColor: '#d1d5db'
-    });
-    if (result.isConfirmed) {
-      onSave(fields);
-    }
-  }, 300);
-}
+    e.preventDefault();
+    onClose();
+    setTimeout(async () => {
+      const result = await Swal.fire({
+        title: '¿Está seguro?',
+        text: '¿Desea guardar los cambios?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, guardar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#2563eb',
+        cancelButtonColor: '#d1d5db'
+      });
+      if (result.isConfirmed) {
+        onSave(fields);
+      }
+    }, 300);
+  }
 
   if (!muestra) return null;
 
@@ -201,20 +201,20 @@ function EditRegistroModal({ open, muestra, onClose, onSave }: {
             {activeTab === 'registros' && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-8 flex-1 content-start">
                 <FloatingInput label="Empresa" name="empresa" value={fields.empresa ?? ''} readOnly />
-                <FloatingInput label="Formulador" name="formulador" value={fields.formulador ?? ''} readOnly />
-                <FloatingInput label="Origen" name="origen" value={fields.origen ?? ''} readOnly />
-                <FloatingInput label="Marca" name="marca" value={fields.marca ?? ''} readOnly />
-                <FloatingInput label="IA" name="ia" value={fields.ia ?? ''} readOnly />
+                <FloatingInput label="Formulador" name="formulador" value={fields.formulador ?? ''} onChange={handleChange} readOnly/>
+                <FloatingInput label="Origen" name="origen" value={fields.origen ?? ''} onChange={handleChange} readOnly/>
+                <FloatingInput label="Marca" name="marca" value={fields.marca ?? ''} onChange={handleChange} readOnly/>
+                <FloatingInput label="IA" name="ia" value={fields.ia ?? ''} onChange={handleChange} readOnly/>
                 <KardexInput value={fields.kardex ?? ''} readOnly />
-                <FloatingInput label="Autorización Importación" name="autorizacion" value={fields.autorizacion ?? ''} onChange={handleChange} />
-                <FloatingInput label="Ingreso a Planta" name="ingresoPlanta" value={fields.ingresoPlanta ?? ''} onChange={handleChange} type="date"/>
+                <FloatingInput label="Autorización Importación" name="autorizacion" value={fields.autorizacion ?? ''} onChange={handleChange}/>
+                <FloatingInput label="Ingreso a Planta" name="ingresoPlanta" value={fields.ingresoPlanta ?? ''} onChange={handleChange} type="date" />
                 <div className="relative w-full">
                   <label className="block mb-1 text-xs font-semibold text-slate-500">Destino de la Muestra</label>
                   <select
                     name="destinoDeLaMuestra"
                     value={fields.destinoDeLaMuestra ?? ''}
-                    disabled
-                    className="block w-full rounded-lg border bg-gray-100 text-gray-500 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    onChange={handleChange}
+                    className="block w-full rounded-lg border  px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                   >
                     <option value="">Seleccione...</option>
                     <option value="Investigación">Investigación</option>
@@ -387,130 +387,130 @@ export default function SeguimientoMuestras() {
   }
 
   async function handleEditSave(updatedFields: Partial<MuestraNacional>) {
-  if (!editingMuestra) return;
-  let headers: any = {};
-  const selectedCompany = sessionStorage.getItem("selected_company");
-  if (selectedCompany) {
+    if (!editingMuestra) return;
+    let headers: any = {};
+    const selectedCompany = sessionStorage.getItem("selected_company");
+    if (selectedCompany) {
+      try {
+        const companyObj = JSON.parse(selectedCompany);
+        if (companyObj?.id) {
+          headers["IdEmpresa"] = companyObj.id;
+        }
+      } catch (e) {
+        console.warn("Error parseando selected_company:", e);
+      }
+    }
+    // Agregar codigousuario y loginusuario
+    const currentUser = sessionStorage.getItem("current_user");
+    if (currentUser) {
+      try {
+        const userObj = JSON.parse(currentUser);
+        if (userObj?.codigoUsuario) {
+          headers.codigousuario = userObj.codigoUsuario.toString();
+        }
+        if (userObj?.loginUsuario) {
+          headers.loginusuario = userObj.loginUsuario;
+        }
+      } catch (e) {
+        console.warn("Error parseando current_user:", e);
+      }
+    }
+    const updated = { ...editingMuestra, ...updatedFields };
+    updated.nroGuia = String(updated.nroGuia ?? "");
+    updated.priceUsd = String(updated.priceUsd ?? "");
     try {
-      const companyObj = JSON.parse(selectedCompany);
-      if (companyObj?.id) {
-        headers["IdEmpresa"] = companyObj.id;
+      const res = await apiService.post("/RegistroNacional/ActualizarMuestraNacional", updated, headers);
+      if (res.success) {
+        // Insertar log de auditoría solo si fue exitoso
+        await apiService.post(
+          '/Log/InsertarLog',
+          {
+            accion: 'Actualizar seguimiento de muestra',
+            descripcion: `Se actualizó el seguimiento de muestra con ID ${updated.nro}`,
+            ruta: window.location.pathname,
+          },
+          headers
+        );
+        setMuestras(prev => prev.map(m => m.nro === updated.nro ? updated : m));
+        await Swal.fire("¡Actualizado!", "El seguimiento de muestra ha sido actualizado.", "success");
+        window.location.reload();
+      } else {
+        await Swal.fire("Error", res.error || "No se pudo actualizar el seguimiento de la muestra.", "error");
       }
-    } catch (e) {
-      console.warn("Error parseando selected_company:", e);
+    } catch (err) {
+      await Swal.fire("Error", "No se pudo actualizar el seguimiento de la muestra.", "error");
+      console.error(err);
     }
+    handleEditModalClose();
   }
-  // Agregar codigousuario y loginusuario
-  const currentUser = sessionStorage.getItem("current_user");
-  if (currentUser) {
-    try {
-      const userObj = JSON.parse(currentUser);
-      if (userObj?.codigoUsuario) {
-        headers.codigousuario = userObj.codigoUsuario.toString();
-      }
-      if (userObj?.loginUsuario) {
-        headers.loginusuario = userObj.loginUsuario;
-      }
-    } catch (e) {
-      console.warn("Error parseando current_user:", e);
-    }
-  }
-  const updated = { ...editingMuestra, ...updatedFields };
-  updated.nroGuia = String(updated.nroGuia ?? "");
-  updated.priceUsd = String(updated.priceUsd ?? "");
-  try {
-    const res = await apiService.post("/RegistroNacional/ActualizarMuestraNacional", updated, headers);
-    if (res.success) {
-      // Insertar log de auditoría solo si fue exitoso
-      await apiService.post(
-        '/Log/InsertarLog',
-        {
-          accion: 'Actualizar seguimiento de muestra',
-          descripcion: `Se actualizó el seguimiento de muestra con ID ${updated.nro}`,
-          ruta: window.location.pathname,
-        },
-        headers
-      );
-      setMuestras(prev => prev.map(m => m.nro === updated.nro ? updated : m));
-      await Swal.fire("¡Actualizado!", "El seguimiento de muestra ha sido actualizado.", "success");
-      window.location.reload(); 
-    } else {
-      await Swal.fire("Error", res.error || "No se pudo actualizar el seguimiento de la muestra.", "error");
-    }
-  } catch (err) {
-    await Swal.fire("Error", "No se pudo actualizar el seguimiento de la muestra.", "error");
-    console.error(err);
-  }
-  handleEditModalClose();
-}
 
 
   async function handleDelete(muestra: MuestraNacional) {
-  const result = await Swal.fire({
-    title: `¿Está seguro?`,
-    text: `¿Desea eliminar este seguimiento? Esta acción no se puede deshacer.`,
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonText: 'Sí, eliminar',
-    cancelButtonText: 'Cancelar',
-    confirmButtonColor: '#d33',
-    cancelButtonColor: '#3085d6',
-  });
-  if (!result.isConfirmed) return;
+    const result = await Swal.fire({
+      title: `¿Está seguro?`,
+      text: `¿Desea eliminar este seguimiento? Esta acción no se puede deshacer.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+    });
+    if (!result.isConfirmed) return;
 
-  let headers: any = {};
-  const selectedCompany = sessionStorage.getItem("selected_company");
-  if (selectedCompany) {
-    try {
-      const companyObj = JSON.parse(selectedCompany);
-      if (companyObj?.id) {
-        headers["IdEmpresa"] = companyObj.id;
+    let headers: any = {};
+    const selectedCompany = sessionStorage.getItem("selected_company");
+    if (selectedCompany) {
+      try {
+        const companyObj = JSON.parse(selectedCompany);
+        if (companyObj?.id) {
+          headers["IdEmpresa"] = companyObj.id;
+        }
+      } catch (e) {
+        console.warn("Error parseando selected_company:", e);
       }
-    } catch (e) {
-      console.warn("Error parseando selected_company:", e);
     }
-  }
-  // Agregar codigousuario y loginusuario
-  const currentUser = sessionStorage.getItem("current_user");
-  if (currentUser) {
-    try {
-      const userObj = JSON.parse(currentUser);
-      if (userObj?.codigoUsuario) {
-        headers.codigousuario = userObj.codigoUsuario.toString();
+    // Agregar codigousuario y loginusuario
+    const currentUser = sessionStorage.getItem("current_user");
+    if (currentUser) {
+      try {
+        const userObj = JSON.parse(currentUser);
+        if (userObj?.codigoUsuario) {
+          headers.codigousuario = userObj.codigoUsuario.toString();
+        }
+        if (userObj?.loginUsuario) {
+          headers.loginusuario = userObj.loginUsuario;
+        }
+      } catch (e) {
+        console.warn("Error parseando current_user:", e);
       }
-      if (userObj?.loginUsuario) {
-        headers.loginusuario = userObj.loginUsuario;
-      }
-    } catch (e) {
-      console.warn("Error parseando current_user:", e);
     }
-  }
 
-  try {
-    const apiService = new ApiService();
-    // El endpoint espera el id en la URL
-    const res = await apiService.post(`/RegistroNacional/EliminarRegistroNacional/${muestra.nro}`, {}, headers);
-    if (res.success) {
-      // Insertar log de auditoría solo si fue exitoso
-      await apiService.post(
-        '/Log/InsertarLog',
-        {
-          accion: 'Eliminar seguimiento de muestra',
-          descripcion: `Se eliminó el seguimiento de muestra con ID ${muestra.nro}`,
-          ruta: window.location.pathname,
-        },
-        headers
-      );
-      setMuestras(prev => prev.filter(m => m.nro !== muestra.nro));
-      await Swal.fire("¡Eliminado!", "El seguimiento de muestra ha sido eliminado exitosamente.", "success");
-    } else {
-      await Swal.fire("Error", res.error || "No se pudo eliminar el seguimiento de la muestra.", "error");
+    try {
+      const apiService = new ApiService();
+      // El endpoint espera el id en la URL
+      const res = await apiService.post(`/RegistroNacional/EliminarRegistroNacional/${muestra.nro}`, {}, headers);
+      if (res.success) {
+        // Insertar log de auditoría solo si fue exitoso
+        await apiService.post(
+          '/Log/InsertarLog',
+          {
+            accion: 'Eliminar seguimiento de muestra',
+            descripcion: `Se eliminó el seguimiento de muestra con ID ${muestra.nro}`,
+            ruta: window.location.pathname,
+          },
+          headers
+        );
+        setMuestras(prev => prev.filter(m => m.nro !== muestra.nro));
+        await Swal.fire("¡Eliminado!", "El seguimiento de muestra ha sido eliminado exitosamente.", "success");
+      } else {
+        await Swal.fire("Error", res.error || "No se pudo eliminar el seguimiento de la muestra.", "error");
+      }
+    } catch (err) {
+      await Swal.fire("Error", "No se pudo eliminar el seguimiento de la muestra.", "error");
+      console.error(err);
     }
-  } catch (err) {
-    await Swal.fire("Error", "No se pudo eliminar el seguimiento de la muestra.", "error");
-    console.error(err);
   }
-}
 
 
 
