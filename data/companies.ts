@@ -126,7 +126,8 @@ export const mockCompanies: Company[] = [
       type: "sqlserver",
       status: "online",
     },
-  }, {
+  },
+  {
     id: "7",
     name: "Biocontrol",
     domain: "",
@@ -146,19 +147,20 @@ export const mockCompanies: Company[] = [
       type: "sqlserver",
       status: "online",
     },
-  }, {
+  },
+  {
     id: "8",
     name: "Neoagrum Ecuador",
     domain: "",
     logo: "/logos/logoneoagrumecuador.png",
     theme: {
-      primaryColor: "#396539",
-      secondaryColor: "#69a742",
-      accentColor: "#7d5936",
-      backgroundColor: "#f5fff4",
-      textColor: "#1c1c1c",
+      primaryColor: "#315644",
+      secondaryColor: "#335946",
+      accentColor: "#7fbf7f",
+      backgroundColor: "#eef7f1",
+      textColor: "#0f172a",
       logoUrl: "/logos/logoneoagrumecuador.png",
-      backgroundImageUrl: "/backgrounds/neoagrumecuador.jpg"
+      backgroundImageUrl: "/backgrounds/neoagrumecubg.jpg"
     },
     databaseInfo: {
       name: "Neoagrum_Ecuador_SA",
@@ -166,22 +168,44 @@ export const mockCompanies: Company[] = [
       type: "sqlserver",
       status: "online",
     },
-  }, {
+  },
+  {
     id: "9",
     name: "Neoagrum Bolivia",
     domain: "",
     logo: "/logos/logoneoagrumbolivia.png",
     theme: {
-      primaryColor: "#396539",
-      secondaryColor: "#69a742",
-      accentColor: "#7d5936",
-      backgroundColor: "#f5fff4",
-      textColor: "#1c1c1c",
+      primaryColor: "#315644",
+      secondaryColor: "#335946",
+      accentColor: "#7fbf7f",
+      backgroundColor: "#eef7f1",
+      textColor: "#0f172a",
       logoUrl: "/logos/logoneoagrumbolivia.png",
-      backgroundImageUrl: "/backgrounds/neoagrumbolivia.jpg"
+      backgroundImageUrl: "/backgrounds/neoagrumbolivia.png"
     },
     databaseInfo: {
       name: "Neoagrum_Bolivia_SA",
+      server: "172.16.1.20",
+      type: "sqlserver",
+      status: "online",
+    },
+  },
+  {
+    id: "10",
+    name: "Neoagrum República Dominicana",
+    domain: "",
+    logo: "/logos/logoneoagrumrd.png",
+    theme: {
+      primaryColor: "#315644",
+      secondaryColor: "#335946",
+      accentColor: "#7fbf7f",
+      backgroundColor: "#eef7f1",
+      textColor: "#0f172a",
+      logoUrl: "/logos/logoneoagrumrd.png",
+      backgroundImageUrl: "/backgrounds/neoagrumrd.jpg"
+    },
+    databaseInfo: {
+      name: "Neoagrum_RD",
       server: "172.16.1.20",
       type: "sqlserver",
       status: "online",

@@ -53,24 +53,24 @@ export const sidebarMenu: MenuItem[] = [
       }
     ],
   },
-  {
-    id: "nacional",
-    icon: Compass,
-    label: "Seguimiento Nacional",
-    href: "/dashboard/nacional",
-    submenu: [
-      {
-        id: "muestras-nacional",
-        icon: Calendar,
-        label: "Seguimiento de Muestras",
-        href: "/dashboard/nacional/seguimiento",
-      },
-      {
-        id: "registro-nacional",
-        icon: PlusCircle,
-        label: "Registro de Productos Nacionales",
-        href: "/dashboard/nacional/registro",
-      }
-    ],
-  }
+  // {
+  //   id: "nacional",
+  //   icon: Compass,
+  //   label: "Seguimiento Nacional",
+  //   href: "/dashboard/nacional",
+  //   submenu: [
+  //     {
+  //       id: "muestras-nacional",
+  //       icon: Calendar,
+  //       label: "Seguimiento de Muestras",
+  //       href: "/dashboard/nacional/seguimiento",
+  //     },
+  //     {
+  //       id: "registro-nacional",
+  //       icon: PlusCircle,
+  //       label: "Registro de Productos Nacionales",
+  //       href: "/dashboard/nacional/registro",
+  //     }
+  //   ],
+  // }
 ]

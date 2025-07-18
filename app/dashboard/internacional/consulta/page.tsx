@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
-import { Pencil, Trash2, Plus, Loader2, FileX2, Filter, X } from "lucide-react";
+import { Pencil, Trash2, Plus, Loader2, FileX2, Filter, X, Download } from "lucide-react";
+import * as XLSX from "xlsx";
 import * as Dialog from '@radix-ui/react-dialog';
 
 import { ApiService } from "@/services/api.service"
@@ -247,6 +248,39 @@ export default function ConsultaInternacionalPage() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
+  function handleExportExcel() {
+    const columns = [
+      "Codigo de Producto", "Producto", "Tipo Producto", "Ingrediente Activo", "Concentración", "Porcentaje",
+      "Formulación", "Clase de Uso", "Banda Toxicológica", "Presentación", "Estabilidad", "Estado",
+      "Avance (%)", "Certificado", "Fecha Registro", "Vigencia", "Resolución"
+    ];
+
+    const data = filtered.map(p => [
+      p.registroProductoId,
+      p.producto,
+      p.tipoProducto,
+      p.ingredienteActivo?.[0]?.nombre || "-",
+      p.ingredienteActivo?.[0]?.concentracion || "-",
+      p.ingredienteActivo?.[0]?.porcentaje || "-",
+      p.formulacion,
+      p.claseUso,
+      p.bandaToxicologica,
+      p.presentacionRegistrada,
+      p.estabilidadProducto,
+      p.avance?.statusAvance || "-",
+      (p.avance?.valor ? p.avance.valor + "%" : "-"),
+      p.certificado?.numeroCertificado || "-",
+      p.certificado?.fechaRegistro || "-",
+      p.certificado?.vigenciaRegistro || "-",
+      p.usos?.[0]?.numeroResolucion || "-"
+    ]);
+
+    const ws = XLSX.utils.aoa_to_sheet([columns, ...data]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Productos Internacionales");
+    XLSX.writeFile(wb, "productos_internacionales.xlsx");
+  }
+
   return (
     <div className="p-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
@@ -276,6 +310,15 @@ export default function ConsultaInternacionalPage() {
           value={search}
           onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
         />
+        {/* <Button
+          type="button"
+          className="flex gap-2 items-center bg-green-700 hover:bg-green-800 text-white rounded shadow px-4"
+          onClick={() => handleExportExcel()}
+          disabled={filtered.length === 0}
+        >
+          <Download className="w-4 h-4" />
+          Descargar Excel
+        </Button> */}
         <Dialog.Root>
           <Dialog.Trigger asChild>
             <Button
