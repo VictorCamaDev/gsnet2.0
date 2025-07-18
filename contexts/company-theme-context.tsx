@@ -13,11 +13,11 @@ interface CompanyThemeContextType {
 }
 
 const defaultTheme: CompanyTheme = {
-  primaryColor: "#0f172a", // slate-900
-  secondaryColor: "#64748b", // slate-500
-  accentColor: "#3b82f6", // blue-500
-  backgroundColor: "#f8fafc", // slate-50
-  textColor: "#0f172a", // slate-900
+  primaryColor: "#0f172a", 
+  secondaryColor: "#64748b", 
+  accentColor: "#3b82f6", 
+  backgroundColor: "#f8fafc", 
+  textColor: "#0f172a", 
   logoUrl: "/placeholder.svg?height=40&width=40",
 }
 

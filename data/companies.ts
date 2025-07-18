@@ -126,7 +126,7 @@ export const mockCompanies: Company[] = [
       type: "sqlserver",
       status: "online",
     },
-  },{
+  }, {
     id: "7",
     name: "Biocontrol",
     domain: "",
@@ -146,5 +146,45 @@ export const mockCompanies: Company[] = [
       type: "sqlserver",
       status: "online",
     },
-  },
+  }, {
+    id: "8",
+    name: "Neoagrum Ecuador",
+    domain: "",
+    logo: "/logos/logoneoagrumecuador.png",
+    theme: {
+      primaryColor: "#396539",
+      secondaryColor: "#69a742",
+      accentColor: "#7d5936",
+      backgroundColor: "#f5fff4",
+      textColor: "#1c1c1c",
+      logoUrl: "/logos/logoneoagrumecuador.png",
+      backgroundImageUrl: "/backgrounds/neoagrumecuador.jpg"
+    },
+    databaseInfo: {
+      name: "Neoagrum_Ecuador_SA",
+      server: "172.16.1.20",
+      type: "sqlserver",
+      status: "online",
+    },
+  }, {
+    id: "9",
+    name: "Neoagrum Bolivia",
+    domain: "",
+    logo: "/logos/logoneoagrumbolivia.png",
+    theme: {
+      primaryColor: "#396539",
+      secondaryColor: "#69a742",
+      accentColor: "#7d5936",
+      backgroundColor: "#f5fff4",
+      textColor: "#1c1c1c",
+      logoUrl: "/logos/logoneoagrumbolivia.png",
+      backgroundImageUrl: "/backgrounds/neoagrumbolivia.jpg"
+    },
+    databaseInfo: {
+      name: "Neoagrum_Bolivia_SA",
+      server: "172.16.1.20",
+      type: "sqlserver",
+      status: "online",
+    },
+  }
 ]

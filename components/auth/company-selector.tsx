@@ -29,6 +29,7 @@ export function CompanySelector() {
   const handleBackToCompanies = () => {
     setSelectedCompany(null)
   }
+  console.log("Cargaron las compañias:", companies)
 
   return (
     <AnimatePresence mode="wait">
