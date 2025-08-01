@@ -1,36 +1,49 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { ComputerIcon as Microsoft, User, Lock, ArrowLeft, CheckCircle, AlertCircle, Loader2 } from "lucide-react"
-import { AuthService } from "@/services/auth.service"
-import { useRouter } from "next/navigation"
-import type { Company } from "@/types/company"
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  ComputerIcon as Microsoft,
+  User,
+  Lock,
+  ArrowLeft,
+  CheckCircle,
+  AlertCircle,
+  Loader2,
+} from "lucide-react";
+import { AuthService } from "@/services/auth.service";
+import { useRouter } from "next/navigation";
+import type { Company } from "@/types/company";
 import { useMsal } from "@azure/msal-react";
-import { useAuth } from "@/hooks/use-auth"
+import { useAuth } from "@/hooks/use-auth";
 import { insertarLog } from "@/utils/log";
 
 interface LoginFormProps {
-  company: Company
+  company: Company;
 }
 
-type LoginState = "idle" | "loading" | "success" | "error"
+type LoginState = "idle" | "loading" | "success" | "error";
 
 export function LoginForm({ company }: LoginFormProps) {
-  const [loginState, setLoginState] = useState<LoginState>("idle")
-  const [loginMethod, setLoginMethod] = useState<"microsoft" | "credentials" | null>(null)
-  const [showCredentialsForm, setShowCredentialsForm] = useState(false)
-  const [credentials, setCredentials] = useState({ username: "", password: "" })
-  const [errorMessage, setErrorMessage] = useState("")
-  const router = useRouter()
-  const authService = new AuthService()
+  const [loginState, setLoginState] = useState<LoginState>("idle");
+  const [loginMethod, setLoginMethod] = useState<
+    "microsoft" | "credentials" | null
+  >(null);
+  const [showCredentialsForm, setShowCredentialsForm] = useState(false);
+  const [credentials, setCredentials] = useState({
+    username: "",
+    password: "",
+  });
+  const [errorMessage, setErrorMessage] = useState("");
+  const router = useRouter();
+  const authService = new AuthService();
   const { instance } = useMsal();
   // Hook de autenticación, debe ir al inicio
   const { loginWithMicrosoft } = useAuth();
@@ -41,7 +54,7 @@ export function LoginForm({ company }: LoginFormProps) {
     accentColor: "#3b82f6",
     backgroundColor: "#f8fafc",
     textColor: "#0f172a",
-  }
+  };
 
   const handleMicrosoftLogin = async () => {
     setLoginState("loading");
@@ -96,7 +109,10 @@ export function LoginForm({ company }: LoginFormProps) {
       return;
     }
     try {
-      const result = await authService.loginWithCredentials(credentials.username, credentials.password);
+      const result = await authService.loginWithCredentials(
+        credentials.username,
+        credentials.password
+      );
       if (result.success) {
         setLoginState("success");
         // Log de auditoría de login exitoso
@@ -116,35 +132,35 @@ export function LoginForm({ company }: LoginFormProps) {
       setLoginState("error");
       setErrorMessage("Error de conexión. Verifica tus datos.");
     }
-  }
+  };
 
   const handleShowCredentialsForm = () => {
-    setShowCredentialsForm(true)
-    setLoginState("idle")
-    setErrorMessage("")
-  }
+    setShowCredentialsForm(true);
+    setLoginState("idle");
+    setErrorMessage("");
+  };
 
   const handleBackToOptions = () => {
-    setShowCredentialsForm(false)
-    setCredentials({ username: "", password: "" })
-    setLoginState("idle")
-    setErrorMessage("")
-    setLoginMethod(null)
-  }
+    setShowCredentialsForm(false);
+    setCredentials({ username: "", password: "" });
+    setLoginState("idle");
+    setErrorMessage("");
+    setLoginMethod(null);
+  };
 
   const resetError = () => {
-    setLoginState("idle")
-    setErrorMessage("")
-  }
+    setLoginState("idle");
+    setErrorMessage("");
+  };
 
   const buttonVariants = {
     hover: { scale: 1.03 },
     tap: { scale: 0.97 },
-  }
+  };
 
   const inputVariants = {
     focus: { scale: 1.01, transition: { duration: 0.2 } },
-  }
+  };
 
   const formVariants = {
     hidden: {
@@ -163,7 +179,7 @@ export function LoginForm({ company }: LoginFormProps) {
         ease: "easeInOut",
       },
     },
-  }
+  };
 
   const contentVariants = {
     hidden: {
@@ -181,20 +197,30 @@ export function LoginForm({ company }: LoginFormProps) {
         delay: 0.1,
       },
     },
-  }
+  };
 
   // Renderizar estado de éxito
   if (loginState === "success") {
     return (
-      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-8">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="text-center py-8"
+      >
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
         >
-          <CheckCircle className="h-16 w-16 mx-auto mb-4" style={{ color: "#22c55e" }} />
+          <CheckCircle
+            className="h-16 w-16 mx-auto mb-4"
+            style={{ color: "#22c55e" }}
+          />
         </motion.div>
-        <h3 className="text-lg font-semibold mb-2" style={{ color: theme.primaryColor }}>
+        <h3
+          className="text-lg font-semibold mb-2"
+          style={{ color: theme.primaryColor }}
+        >
           ¡Bienvenido!
         </h3>
         <p className="text-sm" style={{ color: theme.secondaryColor }}>
@@ -202,14 +228,17 @@ export function LoginForm({ company }: LoginFormProps) {
         </p>
         <div className="mt-4">
           <div className="flex items-center justify-center space-x-2">
-            <Loader2 className="h-4 w-4 animate-spin" style={{ color: theme.accentColor }} />
+            <Loader2
+              className="h-4 w-4 animate-spin"
+              style={{ color: theme.accentColor }}
+            />
             <span className="text-sm" style={{ color: theme.secondaryColor }}>
               Redirigiendo...
             </span>
           </div>
         </div>
       </motion.div>
-    )
+    );
   }
 
   return (
@@ -227,7 +256,12 @@ export function LoginForm({ company }: LoginFormProps) {
               <AlertCircle className="h-4 w-4" />
               <AlertDescription className="flex items-center justify-between">
                 <span>{errorMessage}</span>
-                <Button variant="ghost" size="sm" onClick={resetError} className="h-auto p-1 text-red-600">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={resetError}
+                  className="h-auto p-1 text-red-600"
+                >
                   ✕
                 </Button>
               </AlertDescription>
@@ -246,7 +280,11 @@ export function LoginForm({ company }: LoginFormProps) {
           >
             {/* Opción principal: Microsoft */}
             <div className="space-y-4">
-              <motion.div whileHover="hover" whileTap="tap" variants={buttonVariants}>
+              <motion.div
+                whileHover="hover"
+                whileTap="tap"
+                variants={buttonVariants}
+              >
                 <Button
                   onClick={handleMicrosoftLogin}
                   disabled={loginState === "loading"}
@@ -288,14 +326,20 @@ export function LoginForm({ company }: LoginFormProps) {
                 </Button>
               </motion.div>
 
-              <p className="text-xs text-center" style={{ color: theme.secondaryColor }}>
+              <p
+                className="text-xs text-center"
+                style={{ color: theme.secondaryColor }}
+              >
                 Método de acceso recomendado para empleados de {company.name}
               </p>
             </div>
 
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
-                <Separator className="w-full" style={{ backgroundColor: theme.secondaryColor + "40" }} />
+                <Separator
+                  className="w-full"
+                  style={{ backgroundColor: theme.secondaryColor + "40" }}
+                />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
                 <span
@@ -311,7 +355,11 @@ export function LoginForm({ company }: LoginFormProps) {
             </div>
 
             {/* Botón para mostrar formulario de credenciales */}
-            <motion.div whileHover="hover" whileTap="tap" variants={buttonVariants}>
+            <motion.div
+              whileHover="hover"
+              whileTap="tap"
+              variants={buttonVariants}
+            >
               <Button
                 onClick={handleShowCredentialsForm}
                 disabled={loginState === "loading"}
@@ -325,7 +373,10 @@ export function LoginForm({ company }: LoginFormProps) {
                   opacity: loginState === "loading" ? 0.5 : 1,
                 }}
               >
-                <Lock className="w-5 h-5 mr-3" style={{ color: theme.accentColor }} />
+                <Lock
+                  className="w-5 h-5 mr-3"
+                  style={{ color: theme.accentColor }}
+                />
                 Usuario y Contraseña
               </Button>
             </motion.div>
@@ -353,20 +404,35 @@ export function LoginForm({ company }: LoginFormProps) {
             </div>
 
             {/* Formulario de credenciales */}
-            <motion.div variants={formVariants} initial="hidden" animate="visible" className="overflow-hidden">
+            <motion.div
+              variants={formVariants}
+              initial="hidden"
+              animate="visible"
+              className="overflow-hidden"
+            >
               <motion.div variants={contentVariants}>
                 <form onSubmit={handleCredentialsLogin} className="space-y-5">
                   <div className="text-center mb-6">
-                    <h3 className="text-lg font-semibold" style={{ color: theme.primaryColor }}>
+                    <h3
+                      className="text-lg font-semibold"
+                      style={{ color: theme.primaryColor }}
+                    >
                       Iniciar sesión
                     </h3>
-                    <p className="text-sm" style={{ color: theme.secondaryColor }}>
+                    <p
+                      className="text-sm"
+                      style={{ color: theme.secondaryColor }}
+                    >
                       Ingresa tus credenciales de {company.name}
                     </p>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="username" className="text-sm font-medium" style={{ color: theme.textColor }}>
+                    <Label
+                      htmlFor="username"
+                      className="text-sm font-medium"
+                      style={{ color: theme.textColor }}
+                    >
                       Usuario
                     </Label>
                     <motion.div variants={inputVariants} whileFocus="focus">
@@ -377,14 +443,20 @@ export function LoginForm({ company }: LoginFormProps) {
                           type="text"
                           placeholder={`tu.usuario`}
                           value={credentials.username}
-                          onChange={(e) => setCredentials((prev) => ({ ...prev, username: e.target.value }))}
+                          onChange={(e) =>
+                            setCredentials((prev) => ({
+                              ...prev,
+                              username: e.target.value,
+                            }))
+                          }
                           disabled={loginState === "loading"}
                           className="pl-10 h-11 transition-all duration-200 disabled:opacity-50"
                           style={
                             {
                               borderColor: theme.secondaryColor + "40",
                               color: theme.textColor,
-                              backgroundColor: theme.backgroundColor || "#ffffff",
+                              backgroundColor:
+                                theme.backgroundColor || "#ffffff",
                               "--ring-color": theme.accentColor + "80",
                             } as React.CSSProperties
                           }
@@ -396,7 +468,11 @@ export function LoginForm({ company }: LoginFormProps) {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="password" className="text-sm font-medium" style={{ color: theme.textColor }}>
+                    <Label
+                      htmlFor="password"
+                      className="text-sm font-medium"
+                      style={{ color: theme.textColor }}
+                    >
                       Contraseña
                     </Label>
                     <motion.div variants={inputVariants} whileFocus="focus">
@@ -407,14 +483,20 @@ export function LoginForm({ company }: LoginFormProps) {
                           type="password"
                           placeholder="••••••••"
                           value={credentials.password}
-                          onChange={(e) => setCredentials((prev) => ({ ...prev, password: e.target.value }))}
+                          onChange={(e) =>
+                            setCredentials((prev) => ({
+                              ...prev,
+                              password: e.target.value,
+                            }))
+                          }
                           disabled={loginState === "loading"}
                           className="pl-10 h-11 transition-all duration-200 disabled:opacity-50"
                           style={
                             {
                               borderColor: theme.secondaryColor + "40",
                               color: theme.textColor,
-                              backgroundColor: theme.backgroundColor || "#ffffff",
+                              backgroundColor:
+                                theme.backgroundColor || "#ffffff",
                               "--ring-color": theme.accentColor + "80",
                             } as React.CSSProperties
                           }
@@ -425,20 +507,26 @@ export function LoginForm({ company }: LoginFormProps) {
                   </div>
 
                   <div className="pt-2">
-                    <motion.div whileHover="hover" whileTap="tap" variants={buttonVariants}>
+                    <motion.div
+                      whileHover="hover"
+                      whileTap="tap"
+                      variants={buttonVariants}
+                    >
                       <Button
                         type="submit"
                         disabled={loginState === "loading"}
                         className="w-full h-11 text-white font-medium transition-all duration-300 ease-in-out relative overflow-hidden"
                         style={{
                           backgroundColor:
-                            loginState === "loading" && loginMethod === "credentials"
+                            loginState === "loading" &&
+                            loginMethod === "credentials"
                               ? theme.secondaryColor
                               : theme.accentColor,
                         }}
                       >
                         <AnimatePresence mode="wait">
-                          {loginState === "loading" && loginMethod === "credentials" ? (
+                          {loginState === "loading" &&
+                          loginMethod === "credentials" ? (
                             <motion.div
                               key="loading"
                               initial={{ opacity: 0 }}
@@ -470,5 +558,5 @@ export function LoginForm({ company }: LoginFormProps) {
         )}
       </AnimatePresence>
     </div>
-  )
+  );
 }
