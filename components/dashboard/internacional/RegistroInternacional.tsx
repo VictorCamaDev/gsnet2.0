@@ -603,6 +603,10 @@ export default function RegistroInternacional() {
     }
 
     try {
+      const selectedFormulacion = (formulaciones || []).find(
+        f => f.formulacionId === Number(formData.formulacion)
+      );
+      const codigoFormulacion = selectedFormulacion ? selectedFormulacion.codigo : "";
       // Construir payload
       const certificadoWithIds: any = {
         ...(formData.certificado || {}),
@@ -611,6 +615,7 @@ export default function RegistroInternacional() {
       };
       const payload = {
         ...formData,
+        formulacion: codigoFormulacion,
         fabricantes,
         formuladores,
         usos,
@@ -1063,6 +1068,27 @@ export default function RegistroInternacional() {
     setFormuladores(updatedFormuladores);
   }
 
+  function cleanDate(val: any) {
+    // Si es una fecha vacía, guion o fecha default, regresa ""
+    const invalids = ["", "-", null, undefined, "1001-01-01", "1900-01-01", "0001-01-01"];
+    if (typeof val === "string" && invalids.includes(val.trim())) {
+      return "";
+    }
+    return val;
+  }
+  
+  function cleanValue(val: any, isNumber = false) {
+    // Si es string vacío o guion, regresa null
+    if (typeof val === "string" && (val.trim() === "" || val.trim() === "-")) {
+      return null;
+    }
+    // Si es número y es 0, regresa null (solo si aplica a tu lógica)
+    if (isNumber && (val === 0 || val === "0" || val === null || val === undefined || val === "")) {
+      return null;
+    }
+    return val;
+  }
+
   // --- NORMALIZADOR DE PAYLOAD PARA TIPOS NUMÉRICOS ---
   function normalizePayload(payload: any): any {
     const toNumber = (val: any) =>
@@ -1070,16 +1096,16 @@ export default function RegistroInternacional() {
 
     return {
       ...payload,
-      registroProductoId: toNumber(payload.registroProductoId),
-      tipoProducto: toNumber(payload.tipoProducto),
-      formulacion: toNumber(payload.formulacion),
-      claseUso: toNumber(payload.claseUso),
-      bandaToxicologica: toNumber(payload.bandaToxicologica),
+      registroProductoId: toNumber(cleanValue(payload.registroProductoId, true)),
+      tipoProducto: toNumber(cleanValue(payload.tipoProducto, true)),
+      formulacion: payload.formulacion, 
+      claseUso: toNumber(cleanValue(payload.claseUso, true)),
+      bandaToxicologica: toNumber(cleanValue(payload.bandaToxicologica, true)),
       avance: payload.avance
         ? {
           ...payload.avance,
-          statusAvance: toNumber(payload.avance.statusAvance),
-          valor: toNumber(payload.avance.valor),
+          statusAvance: toNumber(cleanValue(payload.avance.statusAvance, true)),
+          valor: toNumber(cleanValue(payload.avance.valor, true)),
         }
         : undefined,
       certificado: payload.certificado
@@ -1096,40 +1122,40 @@ export default function RegistroInternacional() {
       ingredienteActivo: Array.isArray(payload.ingredienteActivo)
         ? payload.ingredienteActivo.map((ing: any) => ({
           ...ing,
-          id: toNumber(ing.id),
+          id: toNumber(cleanValue(ing.id, true)),
         }))
         : [],
       fabricantes: Array.isArray(payload.fabricantes)
         ? payload.fabricantes.map((emp: any) => ({
           ...emp,
-          id: toNumber(emp.id),
+          id: toNumber(cleanValue(emp.id, true)),
         }))
         : [],
       formuladores: Array.isArray(payload.formuladores)
         ? payload.formuladores.map((emp: any) => ({
           ...emp,
-          id: toNumber(emp.id),
+          id: toNumber(cleanValue(emp.id, true)),
         }))
         : [],
       marca: payload.marca
         ? {
           ...payload.marca,
-          claseRegistroMarca: toNumber(payload.marca.claseRegistroMarca),
-          tipoRegistroMarca: toNumber(payload.marca.tipoRegistroMarca),
+          claseRegistroMarca: toNumber(cleanValue(payload.marca.claseRegistroMarca, true)),
+          tipoRegistroMarca: toNumber(cleanValue(payload.marca.tipoRegistroMarca, true)),
         }
         : undefined,
       usos: Array.isArray(payload.usos)
         ? payload.usos.map((uso: any) => ({
           ...uso,
-          cultivoId: toNumber(uso.cultivoId),
+          cultivoId: toNumber(cleanValue(uso.cultivoId, true)),
           plagas: Array.isArray(uso.plagas)
             ? uso.plagas.map((plaga: any) => ({
               ...plaga,
-              id: toNumber(plaga.id),
-              dosis: toNumber(plaga.dosis),
-              lmr: toNumber(plaga.lmr),
-              pcDias: toNumber(plaga.pcDias),
-              prHoras: toNumber(plaga.prHoras),
+              id: toNumber(cleanValue(plaga.id, true)),
+              dosis: toNumber(cleanValue(plaga.dosis, true)),
+              lmr: toNumber(cleanValue(plaga.lmr, true)),
+              pcDias: toNumber(cleanValue(plaga.pcDias, true)),
+              prHoras: toNumber(cleanValue(plaga.prHoras, true)),
             }))
             : [],
         }))
